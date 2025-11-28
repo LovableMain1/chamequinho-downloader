@@ -1,9 +1,11 @@
 import { useState, useRef, ChangeEvent } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Upload, Download, Grid3x3, Image as ImageIcon, X, FileDown } from 'lucide-react';
+import { Upload, Download, Grid3x3, Image as ImageIcon, X, FileDown, FileImage } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { cn } from '@/lib/utils';
+import html2canvas from 'html2canvas';
+import jsPDF from 'jspdf';
 
 interface PhotoItem {
   id: string;
@@ -99,89 +101,41 @@ export const PhotoGrid = () => {
     if (!gridRef.current) return;
 
     toast({
-      title: "Gerando imagem...",
+      title: "Gerando imagem HD...",
       description: "Aguarde um momento.",
     });
 
     try {
       const gridElement = gridRef.current;
-      const canvas = document.createElement('canvas');
-      const ctx = canvas.getContext('2d');
-      if (!ctx) throw new Error('Canvas not supported');
 
-      const rect = gridElement.getBoundingClientRect();
-      canvas.width = rect.width * scale;
-      canvas.height = rect.height * scale;
-      ctx.scale(scale, scale);
-      ctx.fillStyle = '#ffffff';
-      ctx.fillRect(0, 0, rect.width, rect.height);
-
-      const slots = gridElement.querySelectorAll('[data-slot]');
-      const gap = 8;
-      const padding = 24;
-      const cellWidth = (rect.width - padding * 2 - gap * (gridSize.cols - 1)) / gridSize.cols;
-      const cellHeight = (rect.height - padding * 2 - gap * (gridSize.rows - 1)) / gridSize.rows;
-
-      await Promise.all(
-        Array.from(slots).map((slot, index) => {
-          return new Promise<void>((resolve) => {
-            const img = slot.querySelector('img');
-            if (!img || !img.src) {
-              resolve();
-              return;
-            }
-
-            const image = new Image();
-            image.crossOrigin = 'anonymous';
-            image.onload = () => {
-              const col = index % gridSize.cols;
-              const row = Math.floor(index / gridSize.cols);
-              const x = padding + col * (cellWidth + gap);
-              const y = padding + row * (cellHeight + gap);
-
-              ctx.save();
-              ctx.beginPath();
-              ctx.roundRect(x, y, cellWidth, cellHeight, 8);
-              ctx.clip();
-
-              if (objectFit === 'cover') {
-                const scale = Math.max(cellWidth / image.width, cellHeight / image.height);
-                const scaledW = image.width * scale;
-                const scaledH = image.height * scale;
-                const offsetX = x + (cellWidth - scaledW) / 2;
-                const offsetY = y + (cellHeight - scaledH) / 2;
-                ctx.drawImage(image, offsetX, offsetY, scaledW, scaledH);
-              } else {
-                const scale = Math.min(cellWidth / image.width, cellHeight / image.height);
-                const scaledW = image.width * scale;
-                const scaledH = image.height * scale;
-                const offsetX = x + (cellWidth - scaledW) / 2;
-                const offsetY = y + (cellHeight - scaledH) / 2;
-                ctx.fillStyle = '#f8fafc';
-                ctx.fillRect(x, y, cellWidth, cellHeight);
-                ctx.drawImage(image, offsetX, offsetY, scaledW, scaledH);
-              }
-
-              ctx.restore();
-              resolve();
-            };
-            image.onerror = () => resolve();
-            image.src = img.src;
-          });
-        })
-      );
+      // Enhanced html2canvas options for maximum quality
+      const canvas = await html2canvas(gridElement, {
+        scale: scale,
+        backgroundColor: '#ffffff',
+        logging: false,
+        useCORS: true,
+        allowTaint: false,
+        imageTimeout: 0,
+        removeContainer: false,
+        foreignObjectRendering: false,
+        width: gridElement.offsetWidth,
+        height: gridElement.offsetHeight,
+        scrollX: 0,
+        scrollY: 0,
+      });
 
       canvas.toBlob((blob) => {
         if (blob) {
           const url = URL.createObjectURL(blob);
           const link = document.createElement('a');
           link.href = url;
-          link.download = `chamequinho-${quality}-${Date.now()}.png`;
+          const timestamp = new Date().toISOString().slice(0, 19).replace(/:/g, '-');
+          link.download = `chamequinho-HD-${gridSize.rows}x${gridSize.cols}-${quality}-${timestamp}.png`;
           link.click();
           URL.revokeObjectURL(url);
           toast({
-            title: "Sucesso!",
-            description: `Imagem salva em qualidade ${quality}.`,
+            title: "Sucesso HD!",
+            description: `Imagem salva em qualidade ${quality} (${(blob.size / (1024 * 1024)).toFixed(1)}MB)`,
           });
         }
       }, 'image/png', 1.0);
@@ -189,6 +143,63 @@ export const PhotoGrid = () => {
       toast({
         title: "Erro",
         description: "Não foi possível gerar a imagem.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const downloadAsPDF = async (scale: number, quality: string) => {
+    if (!gridRef.current) return;
+
+    toast({
+      title: "Gerando PDF...",
+      description: "Aguarde um momento.",
+    });
+
+    try {
+      const gridElement = gridRef.current;
+
+      // Enhanced html2canvas options for maximum quality
+      const canvas = await html2canvas(gridElement, {
+        scale: scale,
+        backgroundColor: '#ffffff',
+        logging: false,
+        useCORS: true,
+        allowTaint: false,
+        imageTimeout: 0,
+        removeContainer: false,
+        foreignObjectRendering: false,
+        width: gridElement.offsetWidth,
+        height: gridElement.offsetHeight,
+        scrollX: 0,
+        scrollY: 0,
+      });
+
+      const imgData = canvas.toDataURL('image/png', 1.0);
+      const imgWidth = canvas.width;
+      const imgHeight = canvas.height;
+
+      // Calculate PDF dimensions (A4 or custom)
+      const pdf = new jsPDF({
+        orientation: imgWidth > imgHeight ? 'landscape' : 'portrait',
+        unit: 'px',
+        format: [imgWidth / scale, imgHeight / scale],
+      });
+
+      // Add image to PDF
+      pdf.addImage(imgData, 'PNG', 0, 0, imgWidth / scale, imgHeight / scale, undefined, 'FAST');
+
+      const timestamp = new Date().toISOString().slice(0, 19).replace(/:/g, '-');
+      pdf.save(`chamequinho-HD-${gridSize.rows}x${gridSize.cols}-${quality}-${timestamp}.pdf`);
+
+      toast({
+        title: "Sucesso PDF!",
+        description: `PDF salvo em qualidade ${quality}`,
+      });
+    } catch (error) {
+      toast({
+        title: "Erro",
+        description: "Não foi possível gerar o PDF.",
         variant: "destructive",
       });
     }
@@ -364,9 +375,10 @@ export const PhotoGrid = () => {
                   key={index}
                   data-slot={index}
                   className={cn(
-                    "relative border-2 rounded-lg overflow-hidden transition-all",
-                    photo ? "border-primary" : "border-border bg-surface-variant",
-                    "hover:border-primary hover:shadow-md cursor-pointer"
+                    "relative rounded-lg overflow-hidden transition-all border-2",
+                    photo ? "border-primary/60" : "border-border/40",
+                    "hover:border-primary hover:shadow-md cursor-pointer",
+                    objectFit === 'contain' ? 'bg-slate-50' : 'bg-white'
                   )}
                   onClick={() => handleSlotClick(index)}
                 >
@@ -375,10 +387,13 @@ export const PhotoGrid = () => {
                       src={photo.url}
                       alt=""
                       className="w-full h-full"
-                      style={{ objectFit }}
+                      style={{ 
+                        objectFit,
+                        background: objectFit === 'contain' ? '#f8fafc' : 'transparent'
+                      }}
                     />
                   ) : (
-                    <div className="w-full h-full flex items-center justify-center text-muted-foreground">
+                    <div className="w-full h-full flex items-center justify-center text-muted-foreground bg-gradient-to-br from-slate-50 to-slate-100">
                       <ImageIcon className="w-8 h-8 opacity-30" />
                     </div>
                   )}
@@ -389,47 +404,87 @@ export const PhotoGrid = () => {
         </Card>
 
         <Card className="glass p-6">
-          <h2 className="text-xl font-bold mb-4">Download</h2>
-          <div className="grid md:grid-cols-2 gap-4">
+          <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
+            <Download className="w-5 h-5 text-primary" />
+            Download em Alta Qualidade
+          </h2>
+          <div className="grid md:grid-cols-2 gap-6">
             <div className="space-y-3">
-              <p className="text-sm font-medium">Baixar como Imagem</p>
-              <div className="flex gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => downloadAsImage(1, 'baixa')}
-                  className="flex-1"
-                >
-                  <Download className="w-4 h-4 mr-2" />
-                  Baixa
-                </Button>
+              <div className="flex items-center gap-2 mb-2">
+                <FileImage className="w-4 h-4 text-primary" />
+                <p className="text-sm font-semibold">Download como Imagem PNG</p>
+              </div>
+              <div className="flex flex-col gap-2">
                 <Button
                   variant="outline"
                   size="sm"
                   onClick={() => downloadAsImage(2, 'media')}
-                  className="flex-1"
+                  className="w-full justify-start"
                 >
                   <Download className="w-4 h-4 mr-2" />
-                  Média
+                  Qualidade Média (2x)
                 </Button>
                 <Button
                   variant="outline"
                   size="sm"
                   onClick={() => downloadAsImage(3, 'alta')}
-                  className="flex-1"
+                  className="w-full justify-start"
                 >
                   <Download className="w-4 h-4 mr-2" />
-                  Alta
+                  Qualidade Alta (3x)
+                </Button>
+                <Button
+                  variant="default"
+                  size="sm"
+                  onClick={() => downloadAsImage(4, 'ultra')}
+                  className="w-full justify-start"
+                >
+                  <Download className="w-4 h-4 mr-2" />
+                  Qualidade Ultra HD (4x)
                 </Button>
               </div>
             </div>
             
             <div className="space-y-3">
-              <p className="text-sm font-medium">Nota sobre PDF</p>
-              <p className="text-xs text-muted-foreground">
-                Após o download, você pode converter a imagem em PDF usando ferramentas online ou impressoras virtuais.
-              </p>
+              <div className="flex items-center gap-2 mb-2">
+                <FileDown className="w-4 h-4 text-primary" />
+                <p className="text-sm font-semibold">Download como PDF</p>
+              </div>
+              <div className="flex flex-col gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => downloadAsPDF(2, 'media')}
+                  className="w-full justify-start"
+                >
+                  <FileDown className="w-4 h-4 mr-2" />
+                  PDF Média (2x)
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => downloadAsPDF(3, 'alta')}
+                  className="w-full justify-start"
+                >
+                  <FileDown className="w-4 h-4 mr-2" />
+                  PDF Alta (3x)
+                </Button>
+                <Button
+                  variant="default"
+                  size="sm"
+                  onClick={() => downloadAsPDF(4, 'ultra')}
+                  className="w-full justify-start"
+                >
+                  <FileDown className="w-4 h-4 mr-2" />
+                  PDF Ultra HD (4x)
+                </Button>
+              </div>
             </div>
+          </div>
+          <div className="mt-4 p-3 bg-primary/5 border border-primary/20 rounded-lg">
+            <p className="text-xs text-muted-foreground">
+              💡 <strong>Dica:</strong> As bordas são mantidas no download para facilitar o recorte de cada logo. Qualidade Ultra HD (4x) oferece a melhor resolução para impressão profissional.
+            </p>
           </div>
         </Card>
       </div>
