@@ -18,6 +18,8 @@ export const PhotoGrid = () => {
   const [selectedSlots, setSelectedSlots] = useState<Record<number, PhotoItem | null>>({});
   const [objectFit, setObjectFit] = useState<'cover' | 'contain'>('contain');
   const [dragActive, setDragActive] = useState(false);
+  const [borderWidth, setBorderWidth] = useState(2);
+  const [borderColor, setBorderColor] = useState('#000000');
   const gridRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
@@ -94,6 +96,28 @@ export const PhotoGrid = () => {
         }
       });
       return newSlots;
+    });
+  };
+
+  const fillAllSlots = () => {
+    if (photos.length === 0) {
+      toast({
+        title: "Sem fotos",
+        description: "Adicione fotos primeiro para preencher o grid.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const newSlots: Record<number, PhotoItem | null> = {};
+    for (let i = 0; i < totalSlots; i++) {
+      newSlots[i] = photos[i % photos.length];
+    }
+    setSelectedSlots(newSlots);
+    
+    toast({
+      title: "Grid preenchido!",
+      description: "Todas as células foram preenchidas automaticamente.",
     });
   };
 
@@ -312,8 +336,8 @@ export const PhotoGrid = () => {
               </label>
               <input
                 type="range"
-                min="2"
-                max="6"
+                min="1"
+                max="20"
                 value={gridSize.rows}
                 onChange={(e) => setGridSize(prev => ({ ...prev, rows: parseInt(e.target.value) }))}
                 className="w-full h-2 bg-muted rounded-lg appearance-none cursor-pointer accent-primary"
@@ -326,12 +350,49 @@ export const PhotoGrid = () => {
               </label>
               <input
                 type="range"
-                min="2"
-                max="6"
+                min="1"
+                max="20"
                 value={gridSize.cols}
                 onChange={(e) => setGridSize(prev => ({ ...prev, cols: parseInt(e.target.value) }))}
                 className="w-full h-2 bg-muted rounded-lg appearance-none cursor-pointer accent-primary"
               />
+            </div>
+          </div>
+
+          <div className="grid md:grid-cols-2 gap-6">
+            <div className="space-y-3">
+              <label className="text-sm font-medium">
+                Largura da Borda: {borderWidth}px
+              </label>
+              <input
+                type="range"
+                min="0"
+                max="10"
+                value={borderWidth}
+                onChange={(e) => setBorderWidth(parseInt(e.target.value))}
+                className="w-full h-2 bg-muted rounded-lg appearance-none cursor-pointer accent-primary"
+              />
+            </div>
+            
+            <div className="space-y-3">
+              <label className="text-sm font-medium">
+                Cor da Borda
+              </label>
+              <div className="flex gap-3 items-center">
+                <input
+                  type="color"
+                  value={borderColor}
+                  onChange={(e) => setBorderColor(e.target.value)}
+                  className="h-10 w-20 rounded cursor-pointer border-2 border-border"
+                />
+                <input
+                  type="text"
+                  value={borderColor}
+                  onChange={(e) => setBorderColor(e.target.value)}
+                  className="flex-1 h-10 px-3 rounded-md border-2 border-border bg-background text-foreground font-mono text-sm"
+                  placeholder="#000000"
+                />
+              </div>
             </div>
           </div>
 
@@ -354,6 +415,17 @@ export const PhotoGrid = () => {
               </Button>
             </div>
           </div>
+
+          <div className="space-y-3">
+            <label className="text-sm font-medium">Preenchimento Automático</label>
+            <Button
+              onClick={fillAllSlots}
+              className="w-full"
+              variant="default"
+            >
+              Preencher Todas as Células
+            </Button>
+          </div>
         </Card>
 
         <Card className="glass p-8">
@@ -375,11 +447,13 @@ export const PhotoGrid = () => {
                   key={index}
                   data-slot={index}
                   className={cn(
-                    "relative rounded-lg overflow-hidden transition-all border-2",
-                    photo ? "border-primary/60" : "border-border/40",
-                    "hover:border-primary hover:shadow-md cursor-pointer",
+                    "relative rounded-lg overflow-hidden transition-all",
+                    "hover:shadow-md cursor-pointer",
                     objectFit === 'contain' ? 'bg-slate-50' : 'bg-white'
                   )}
+                  style={{
+                    border: `${borderWidth}px solid ${borderColor}`
+                  }}
                   onClick={() => handleSlotClick(index)}
                 >
                   {photo ? (
