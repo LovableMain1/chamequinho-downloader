@@ -213,12 +213,49 @@
 
         @media (max-width: 768px) {
             .upload-zone {
-                padding: 2rem 1rem;
+                padding: 1.5rem 1rem;
             }
             
             h1 {
-                font-size: 1.75rem !important;
+                font-size: 1.5rem !important;
             }
+
+            .header-icon {
+                width: 40px;
+                height: 40px;
+            }
+
+            .header-icon i {
+                font-size: 1.25rem !important;
+            }
+
+            .upload-icon {
+                width: 60px;
+                height: 60px;
+            }
+
+            .upload-icon i {
+                font-size: 1.5rem !important;
+            }
+        }
+
+        @media (max-width: 576px) {
+            h1 {
+                font-size: 1.25rem !important;
+            }
+
+            .glass {
+                padding: 0.75rem !important;
+            }
+
+            .form-label {
+                font-size: 0.85rem;
+            }
+        }
+
+        .grid-container {
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
         }
     </style>
 </head>
@@ -259,52 +296,63 @@
         </div>
 
         <!-- Grid Settings -->
-        <div class="glass p-4 mb-4">
-            <h5 class="mb-4 fw-bold">Configurações do Grid</h5>
+        <div class="glass p-3 p-md-4 mb-4">
+            <h5 class="mb-3 mb-md-4 fw-bold">Configurações do Grid</h5>
             
-            <div class="row g-4">
-                <div class="col-md-6">
+            <div class="row g-3 g-md-4">
+                <div class="col-6 col-md-6">
                     <label class="form-label">Linhas: <span id="rowsValue">3</span></label>
                     <input type="range" class="form-range" id="rowsInput" min="1" max="20" value="3" oninput="updateGrid()">
                 </div>
-                <div class="col-md-6">
+                <div class="col-6 col-md-6">
                     <label class="form-label">Colunas: <span id="colsValue">3</span></label>
                     <input type="range" class="form-range" id="colsInput" min="1" max="20" value="3" oninput="updateGrid()">
                 </div>
             </div>
 
-            <div class="row g-4 mt-2">
-                <div class="col-md-6">
+            <div class="row g-3 g-md-4 mt-1 mt-md-2">
+                <div class="col-6 col-md-6">
+                    <label class="form-label">Largura da Folha: <span id="paperWidthValue">800</span>px</label>
+                    <input type="range" class="form-range" id="paperWidthInput" min="300" max="1920" step="10" value="800" oninput="updateGrid()">
+                </div>
+                <div class="col-6 col-md-6">
+                    <label class="form-label">Tamanho da Célula: <span id="cellSizeValue">100</span>px</label>
+                    <input type="range" class="form-range" id="cellSizeInput" min="30" max="300" step="5" value="100" oninput="updateGrid()">
+                </div>
+            </div>
+
+            <div class="row g-3 g-md-4 mt-1 mt-md-2">
+                <div class="col-6 col-md-6">
                     <label class="form-label">Largura da Borda: <span id="borderWidthValue">2</span>px</label>
                     <input type="range" class="form-range" id="borderWidthInput" min="0" max="10" value="2" oninput="updateGrid()">
                 </div>
-                <div class="col-md-6">
+                <div class="col-6 col-md-6">
                     <label class="form-label">Cor da Borda</label>
                     <div class="d-flex gap-2 align-items-center">
                         <input type="color" class="form-control form-control-color" id="borderColorInput" value="#000000" oninput="updateGrid()">
-                        <input type="text" class="form-control bg-dark text-light border-secondary" id="borderColorText" value="#000000" oninput="syncColorInput()" style="font-family: monospace;">
+                        <input type="text" class="form-control bg-dark text-light border-secondary" id="borderColorText" value="#000000" oninput="syncColorInput()" style="font-family: monospace; font-size: 0.85rem;">
                     </div>
                 </div>
             </div>
 
-            <div class="mt-4">
+            <div class="mt-3 mt-md-4">
                 <label class="form-label">Ajuste de Imagem</label>
                 <div class="d-flex gap-2">
-                    <button class="btn btn-outline-custom flex-fill active" id="btnContain" onclick="setObjectFit('contain')">Conter</button>
-                    <button class="btn btn-outline-custom flex-fill" id="btnCover" onclick="setObjectFit('cover')">Preencher</button>
+                    <button class="btn btn-outline-custom flex-fill btn-sm" id="btnContain" onclick="setObjectFit('contain')">Conter</button>
+                    <button class="btn btn-outline-custom flex-fill btn-sm" id="btnCover" onclick="setObjectFit('cover')">Preencher</button>
                 </div>
             </div>
 
-            <div class="mt-4">
+            <div class="mt-3 mt-md-4">
                 <label class="form-label">Preenchimento Automático</label>
-                <button class="btn btn-primary-custom w-100" onclick="fillAllSlots()">Preencher Todas as Células</button>
+                <button class="btn btn-primary-custom w-100 btn-sm" onclick="fillAllSlots()">Preencher Todas as Células</button>
             </div>
         </div>
 
         <!-- Grid Preview -->
-        <div class="glass p-4 mb-4">
-            <div class="d-flex justify-content-center">
-                <div id="photoGrid" style="max-width: 800px; width: 100%;"></div>
+        <div class="glass p-3 p-md-4 mb-4">
+            <div class="grid-container d-flex justify-content-center">
+                <div id="photoGrid"></div>
             </div>
         </div>
 
@@ -384,10 +432,13 @@
         let gridCols = 3;
         let borderWidth = 2;
         let borderColor = '#000000';
+        let paperWidth = 800;
+        let cellSize = 100;
 
         // Initialize
         document.addEventListener('DOMContentLoaded', () => {
             setupDragAndDrop();
+            document.getElementById('btnContain').classList.add('active');
             updateGrid();
         });
 
@@ -494,20 +545,25 @@
             gridCols = parseInt(document.getElementById('colsInput').value);
             borderWidth = parseInt(document.getElementById('borderWidthInput').value);
             borderColor = document.getElementById('borderColorInput').value;
+            paperWidth = parseInt(document.getElementById('paperWidthInput').value);
+            cellSize = parseInt(document.getElementById('cellSizeInput').value);
 
             document.getElementById('rowsValue').textContent = gridRows;
             document.getElementById('colsValue').textContent = gridCols;
             document.getElementById('borderWidthValue').textContent = borderWidth;
             document.getElementById('borderColorText').value = borderColor;
+            document.getElementById('paperWidthValue').textContent = paperWidth;
+            document.getElementById('cellSizeValue').textContent = cellSize;
 
             const grid = document.getElementById('photoGrid');
             const totalSlots = gridRows * gridCols;
 
             grid.style.display = 'grid';
-            grid.style.gridTemplateColumns = `repeat(${gridCols}, 1fr)`;
-            grid.style.gridTemplateRows = `repeat(${gridRows}, 1fr)`;
+            grid.style.gridTemplateColumns = `repeat(${gridCols}, ${cellSize}px)`;
+            grid.style.gridTemplateRows = `repeat(${gridRows}, ${cellSize}px)`;
             grid.style.gap = '8px';
-            grid.style.aspectRatio = `${gridCols} / ${gridRows}`;
+            grid.style.maxWidth = `${paperWidth}px`;
+            grid.style.width = 'fit-content';
 
             let html = '';
             for (let i = 0; i < totalSlots; i++) {
@@ -516,7 +572,7 @@
                 
                 html += `
                     <div class="grid-slot" data-slot="${i}" onclick="handleSlotClick(${i})" 
-                         style="border: ${borderWidth}px solid ${borderColor}; background: ${bgColor};">
+                         style="border: ${borderWidth}px solid ${borderColor}; background: ${bgColor}; width: ${cellSize}px; height: ${cellSize}px;">
                         ${photo ? `
                             <img src="${photo.url}" alt="" style="object-fit: ${objectFit}; background: ${bgColor};">
                         ` : `
