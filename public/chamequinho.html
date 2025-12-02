@@ -1,0 +1,657 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chamequinho Pro - Gerador de Grid de Fotos</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+    <style>
+        :root {
+            --primary-color: #10b981;
+            --primary-dark: #059669;
+            --primary-light: #34d399;
+            --secondary-color: #06b6d4;
+            --bg-gradient: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0f172a 100%);
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            background: var(--bg-gradient);
+            min-height: 100vh;
+            color: #e2e8f0;
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+        }
+
+        .glass {
+            background: rgba(30, 41, 59, 0.8);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 1rem;
+        }
+
+        .header-icon {
+            width: 56px;
+            height: 56px;
+            background: linear-gradient(135deg, var(--primary-color), var(--primary-light));
+            border-radius: 1rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 10px 30px -10px rgba(16, 185, 129, 0.4);
+        }
+
+        .gradient-text {
+            background: linear-gradient(90deg, var(--primary-color), var(--primary-light), var(--secondary-color));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .upload-zone {
+            border: 3px dashed rgba(255, 255, 255, 0.2);
+            border-radius: 1rem;
+            padding: 3rem;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .upload-zone:hover,
+        .upload-zone.drag-active {
+            border-color: var(--primary-color);
+            background: rgba(16, 185, 129, 0.1);
+            transform: scale(1.01);
+        }
+
+        .upload-icon {
+            width: 80px;
+            height: 80px;
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 1rem;
+            box-shadow: 0 10px 30px -10px rgba(16, 185, 129, 0.5);
+        }
+
+        .photo-thumb {
+            position: relative;
+            aspect-ratio: 1;
+            border-radius: 0.5rem;
+            overflow: hidden;
+            border: 2px solid rgba(255, 255, 255, 0.1);
+            transition: border-color 0.2s;
+        }
+
+        .photo-thumb:hover {
+            border-color: var(--primary-color);
+        }
+
+        .photo-thumb img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .photo-thumb .remove-btn {
+            position: absolute;
+            top: -8px;
+            right: -8px;
+            width: 24px;
+            height: 24px;
+            background: #ef4444;
+            border: none;
+            border-radius: 50%;
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            transition: opacity 0.2s;
+            cursor: pointer;
+            font-size: 12px;
+        }
+
+        .photo-thumb:hover .remove-btn {
+            opacity: 1;
+        }
+
+        .form-range::-webkit-slider-thumb {
+            background: var(--primary-color);
+        }
+
+        .form-range::-moz-range-thumb {
+            background: var(--primary-color);
+        }
+
+        .btn-primary-custom {
+            background: linear-gradient(135deg, var(--primary-color), var(--primary-dark));
+            border: none;
+            color: white;
+            transition: all 0.3s;
+        }
+
+        .btn-primary-custom:hover {
+            background: linear-gradient(135deg, var(--primary-light), var(--primary-color));
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px -10px rgba(16, 185, 129, 0.5);
+        }
+
+        .btn-outline-custom {
+            border: 2px solid rgba(255, 255, 255, 0.2);
+            color: #e2e8f0;
+            background: transparent;
+            transition: all 0.3s;
+        }
+
+        .btn-outline-custom:hover {
+            border-color: var(--primary-color);
+            background: rgba(16, 185, 129, 0.1);
+            color: var(--primary-light);
+        }
+
+        .btn-outline-custom.active {
+            background: var(--primary-color);
+            border-color: var(--primary-color);
+            color: white;
+        }
+
+        #photoGrid {
+            background: white;
+            padding: 1.5rem;
+            border-radius: 1rem;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+        }
+
+        .grid-slot {
+            position: relative;
+            overflow: hidden;
+            border-radius: 0.5rem;
+            cursor: pointer;
+            transition: box-shadow 0.2s;
+            background: linear-gradient(135deg, #f8fafc, #f1f5f9);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .grid-slot:hover {
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        }
+
+        .grid-slot img {
+            width: 100%;
+            height: 100%;
+        }
+
+        .grid-slot .placeholder-icon {
+            color: #cbd5e1;
+            font-size: 2rem;
+            opacity: 0.5;
+        }
+
+        .tip-box {
+            background: rgba(16, 185, 129, 0.1);
+            border: 1px solid rgba(16, 185, 129, 0.3);
+            border-radius: 0.5rem;
+            padding: 0.75rem 1rem;
+        }
+
+        .form-control-color {
+            width: 80px;
+            height: 40px;
+            padding: 0.25rem;
+            cursor: pointer;
+        }
+
+        @media (max-width: 768px) {
+            .upload-zone {
+                padding: 2rem 1rem;
+            }
+            
+            h1 {
+                font-size: 1.75rem !important;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container py-4 py-md-5">
+        <div class="text-center mb-5">
+            <div class="d-flex align-items-center justify-content-center gap-3 mb-3">
+                <div class="header-icon">
+                    <i class="bi bi-grid-3x3 text-white fs-3"></i>
+                </div>
+                <h1 class="gradient-text fw-bold mb-0">Chamequinho Pro</h1>
+            </div>
+            <p class="text-secondary fs-5">Crie colagens profissionais com grid personalizável e download em alta qualidade</p>
+        </div>
+
+        <!-- Upload Zone -->
+        <div class="glass p-4 mb-4">
+            <div class="upload-zone" id="uploadZone" onclick="document.getElementById('fileInput').click()">
+                <input type="file" id="fileInput" multiple accept="image/*" class="d-none" onchange="handleFiles(this.files)">
+                <div class="upload-icon">
+                    <i class="bi bi-cloud-upload text-white fs-2"></i>
+                </div>
+                <p class="fs-5 fw-semibold mb-2">Arraste fotos ou clique para selecionar</p>
+                <p class="text-secondary mb-0">Suporta PNG, JPG, JPEG e WEBP</p>
+            </div>
+        </div>
+
+        <!-- Photos Gallery -->
+        <div class="glass p-4 mb-4" id="photosGallery" style="display: none;">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h5 class="mb-0 d-flex align-items-center gap-2">
+                    <i class="bi bi-images text-success"></i>
+                    <span>Suas Fotos (<span id="photoCount">0</span>)</span>
+                </h5>
+                <button class="btn btn-outline-custom btn-sm" onclick="clearAllPhotos()">Limpar Todas</button>
+            </div>
+            <div class="row g-2" id="photosList"></div>
+        </div>
+
+        <!-- Grid Settings -->
+        <div class="glass p-4 mb-4">
+            <h5 class="mb-4 fw-bold">Configurações do Grid</h5>
+            
+            <div class="row g-4">
+                <div class="col-md-6">
+                    <label class="form-label">Linhas: <span id="rowsValue">3</span></label>
+                    <input type="range" class="form-range" id="rowsInput" min="1" max="20" value="3" oninput="updateGrid()">
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">Colunas: <span id="colsValue">3</span></label>
+                    <input type="range" class="form-range" id="colsInput" min="1" max="20" value="3" oninput="updateGrid()">
+                </div>
+            </div>
+
+            <div class="row g-4 mt-2">
+                <div class="col-md-6">
+                    <label class="form-label">Largura da Borda: <span id="borderWidthValue">2</span>px</label>
+                    <input type="range" class="form-range" id="borderWidthInput" min="0" max="10" value="2" oninput="updateGrid()">
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">Cor da Borda</label>
+                    <div class="d-flex gap-2 align-items-center">
+                        <input type="color" class="form-control form-control-color" id="borderColorInput" value="#000000" oninput="updateGrid()">
+                        <input type="text" class="form-control bg-dark text-light border-secondary" id="borderColorText" value="#000000" oninput="syncColorInput()" style="font-family: monospace;">
+                    </div>
+                </div>
+            </div>
+
+            <div class="mt-4">
+                <label class="form-label">Ajuste de Imagem</label>
+                <div class="d-flex gap-2">
+                    <button class="btn btn-outline-custom flex-fill active" id="btnContain" onclick="setObjectFit('contain')">Conter</button>
+                    <button class="btn btn-outline-custom flex-fill" id="btnCover" onclick="setObjectFit('cover')">Preencher</button>
+                </div>
+            </div>
+
+            <div class="mt-4">
+                <label class="form-label">Preenchimento Automático</label>
+                <button class="btn btn-primary-custom w-100" onclick="fillAllSlots()">Preencher Todas as Células</button>
+            </div>
+        </div>
+
+        <!-- Grid Preview -->
+        <div class="glass p-4 mb-4">
+            <div class="d-flex justify-content-center">
+                <div id="photoGrid" style="max-width: 800px; width: 100%;"></div>
+            </div>
+        </div>
+
+        <!-- Download Options -->
+        <div class="glass p-4">
+            <h5 class="mb-4 fw-bold d-flex align-items-center gap-2">
+                <i class="bi bi-download text-success"></i>
+                Download em Alta Qualidade
+            </h5>
+            
+            <div class="row g-4">
+                <div class="col-md-6">
+                    <div class="d-flex align-items-center gap-2 mb-3">
+                        <i class="bi bi-file-image text-success"></i>
+                        <span class="fw-semibold">Download como Imagem PNG</span>
+                    </div>
+                    <div class="d-grid gap-2">
+                        <button class="btn btn-outline-custom text-start" onclick="downloadAsImage(2, 'media')">
+                            <i class="bi bi-download me-2"></i>Qualidade Média (2x)
+                        </button>
+                        <button class="btn btn-outline-custom text-start" onclick="downloadAsImage(3, 'alta')">
+                            <i class="bi bi-download me-2"></i>Qualidade Alta (3x)
+                        </button>
+                        <button class="btn btn-primary-custom text-start" onclick="downloadAsImage(4, 'ultra')">
+                            <i class="bi bi-download me-2"></i>Qualidade Ultra HD (4x)
+                        </button>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="d-flex align-items-center gap-2 mb-3">
+                        <i class="bi bi-file-pdf text-success"></i>
+                        <span class="fw-semibold">Download como PDF</span>
+                    </div>
+                    <div class="d-grid gap-2">
+                        <button class="btn btn-outline-custom text-start" onclick="downloadAsPDF(2, 'media')">
+                            <i class="bi bi-file-earmark-pdf me-2"></i>PDF Média (2x)
+                        </button>
+                        <button class="btn btn-outline-custom text-start" onclick="downloadAsPDF(3, 'alta')">
+                            <i class="bi bi-file-earmark-pdf me-2"></i>PDF Alta (3x)
+                        </button>
+                        <button class="btn btn-primary-custom text-start" onclick="downloadAsPDF(4, 'ultra')">
+                            <i class="bi bi-file-earmark-pdf me-2"></i>PDF Ultra HD (4x)
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="tip-box mt-4">
+                <p class="mb-0 small">
+                    💡 <strong>Dica:</strong> As bordas são mantidas no download para facilitar o recorte de cada logo. Qualidade Ultra HD (4x) oferece a melhor resolução para impressão profissional.
+                </p>
+            </div>
+        </div>
+
+        <footer class="text-center mt-5 text-secondary">
+            <p class="small mb-0">Chamequinho Pro - Ferramenta offline para criação de grids de fotos</p>
+        </footer>
+    </div>
+
+    <!-- Toast Container -->
+    <div class="toast-container position-fixed bottom-0 end-0 p-3">
+        <div id="toast" class="toast align-items-center text-white border-0" role="alert">
+            <div class="d-flex">
+                <div class="toast-body" id="toastMessage"></div>
+                <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // State
+        let photos = [];
+        let selectedSlots = {};
+        let objectFit = 'contain';
+        let gridRows = 3;
+        let gridCols = 3;
+        let borderWidth = 2;
+        let borderColor = '#000000';
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            setupDragAndDrop();
+            updateGrid();
+        });
+
+        // Drag and Drop
+        function setupDragAndDrop() {
+            const zone = document.getElementById('uploadZone');
+            
+            ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+                zone.addEventListener(eventName, (e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                });
+            });
+
+            ['dragenter', 'dragover'].forEach(eventName => {
+                zone.addEventListener(eventName, () => zone.classList.add('drag-active'));
+            });
+
+            ['dragleave', 'drop'].forEach(eventName => {
+                zone.addEventListener(eventName, () => zone.classList.remove('drag-active'));
+            });
+
+            zone.addEventListener('drop', (e) => {
+                handleFiles(e.dataTransfer.files);
+            });
+        }
+
+        // Handle Files
+        function handleFiles(files) {
+            if (!files || files.length === 0) return;
+
+            let added = 0;
+            Array.from(files).forEach(file => {
+                if (file.type.startsWith('image/')) {
+                    const reader = new FileReader();
+                    reader.onload = (e) => {
+                        photos.push({
+                            id: Math.random().toString(36).substring(7),
+                            url: e.target.result
+                        });
+                        added++;
+                        updatePhotosGallery();
+                    };
+                    reader.readAsDataURL(file);
+                }
+            });
+
+            setTimeout(() => {
+                if (added > 0) {
+                    showToast(`${added} foto(s) carregada(s)!`, 'success');
+                }
+            }, 100);
+        }
+
+        // Update Photos Gallery
+        function updatePhotosGallery() {
+            const gallery = document.getElementById('photosGallery');
+            const list = document.getElementById('photosList');
+            const count = document.getElementById('photoCount');
+
+            if (photos.length === 0) {
+                gallery.style.display = 'none';
+                return;
+            }
+
+            gallery.style.display = 'block';
+            count.textContent = photos.length;
+
+            list.innerHTML = photos.map(photo => `
+                <div class="col-3 col-md-2 col-lg-1">
+                    <div class="photo-thumb">
+                        <img src="${photo.url}" alt="">
+                        <button class="remove-btn" onclick="removePhoto('${photo.id}')">
+                            <i class="bi bi-x"></i>
+                        </button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // Remove Photo
+        function removePhoto(id) {
+            photos = photos.filter(p => p.id !== id);
+            Object.keys(selectedSlots).forEach(key => {
+                if (selectedSlots[key]?.id === id) {
+                    delete selectedSlots[key];
+                }
+            });
+            updatePhotosGallery();
+            updateGrid();
+        }
+
+        // Clear All Photos
+        function clearAllPhotos() {
+            photos = [];
+            selectedSlots = {};
+            updatePhotosGallery();
+            updateGrid();
+        }
+
+        // Update Grid
+        function updateGrid() {
+            gridRows = parseInt(document.getElementById('rowsInput').value);
+            gridCols = parseInt(document.getElementById('colsInput').value);
+            borderWidth = parseInt(document.getElementById('borderWidthInput').value);
+            borderColor = document.getElementById('borderColorInput').value;
+
+            document.getElementById('rowsValue').textContent = gridRows;
+            document.getElementById('colsValue').textContent = gridCols;
+            document.getElementById('borderWidthValue').textContent = borderWidth;
+            document.getElementById('borderColorText').value = borderColor;
+
+            const grid = document.getElementById('photoGrid');
+            const totalSlots = gridRows * gridCols;
+
+            grid.style.display = 'grid';
+            grid.style.gridTemplateColumns = `repeat(${gridCols}, 1fr)`;
+            grid.style.gridTemplateRows = `repeat(${gridRows}, 1fr)`;
+            grid.style.gap = '8px';
+            grid.style.aspectRatio = `${gridCols} / ${gridRows}`;
+
+            let html = '';
+            for (let i = 0; i < totalSlots; i++) {
+                const photo = selectedSlots[i];
+                const bgColor = objectFit === 'contain' ? '#f8fafc' : 'white';
+                
+                html += `
+                    <div class="grid-slot" data-slot="${i}" onclick="handleSlotClick(${i})" 
+                         style="border: ${borderWidth}px solid ${borderColor}; background: ${bgColor};">
+                        ${photo ? `
+                            <img src="${photo.url}" alt="" style="object-fit: ${objectFit}; background: ${bgColor};">
+                        ` : `
+                            <i class="bi bi-image placeholder-icon"></i>
+                        `}
+                    </div>
+                `;
+            }
+            grid.innerHTML = html;
+        }
+
+        // Sync Color Input
+        function syncColorInput() {
+            const text = document.getElementById('borderColorText').value;
+            if (/^#[0-9A-Fa-f]{6}$/.test(text)) {
+                document.getElementById('borderColorInput').value = text;
+                borderColor = text;
+                updateGrid();
+            }
+        }
+
+        // Handle Slot Click
+        function handleSlotClick(index) {
+            if (photos.length === 0) return;
+
+            const currentPhoto = selectedSlots[index];
+            if (currentPhoto) {
+                const currentIndex = photos.findIndex(p => p.id === currentPhoto.id);
+                const nextIndex = (currentIndex + 1) % photos.length;
+                selectedSlots[index] = photos[nextIndex];
+            } else {
+                selectedSlots[index] = photos[0];
+            }
+            updateGrid();
+        }
+
+        // Set Object Fit
+        function setObjectFit(fit) {
+            objectFit = fit;
+            document.getElementById('btnContain').classList.toggle('active', fit === 'contain');
+            document.getElementById('btnCover').classList.toggle('active', fit === 'cover');
+            updateGrid();
+        }
+
+        // Fill All Slots
+        function fillAllSlots() {
+            if (photos.length === 0) {
+                showToast('Adicione fotos primeiro!', 'danger');
+                return;
+            }
+
+            const totalSlots = gridRows * gridCols;
+            for (let i = 0; i < totalSlots; i++) {
+                selectedSlots[i] = photos[i % photos.length];
+            }
+            updateGrid();
+            showToast('Grid preenchido!', 'success');
+        }
+
+        // Download as Image
+        async function downloadAsImage(scale, quality) {
+            const grid = document.getElementById('photoGrid');
+            showToast(`Gerando imagem ${quality}...`, 'info');
+
+            try {
+                const canvas = await html2canvas(grid, {
+                    scale: scale,
+                    backgroundColor: '#ffffff',
+                    logging: false,
+                    useCORS: true,
+                    allowTaint: true
+                });
+
+                canvas.toBlob((blob) => {
+                    const url = URL.createObjectURL(blob);
+                    const link = document.createElement('a');
+                    link.href = url;
+                    const timestamp = new Date().toISOString().slice(0, 19).replace(/:/g, '-');
+                    link.download = `chamequinho-HD-${gridRows}x${gridCols}-${quality}-${timestamp}.png`;
+                    link.click();
+                    URL.revokeObjectURL(url);
+                    showToast(`Imagem ${quality} salva! (${(blob.size / (1024 * 1024)).toFixed(1)}MB)`, 'success');
+                }, 'image/png', 1.0);
+            } catch (error) {
+                showToast('Erro ao gerar imagem!', 'danger');
+            }
+        }
+
+        // Download as PDF
+        async function downloadAsPDF(scale, quality) {
+            const grid = document.getElementById('photoGrid');
+            showToast(`Gerando PDF ${quality}...`, 'info');
+
+            try {
+                const canvas = await html2canvas(grid, {
+                    scale: scale,
+                    backgroundColor: '#ffffff',
+                    logging: false,
+                    useCORS: true,
+                    allowTaint: true
+                });
+
+                const imgData = canvas.toDataURL('image/png', 1.0);
+                const imgWidth = canvas.width;
+                const imgHeight = canvas.height;
+
+                const { jsPDF } = window.jspdf;
+                const pdf = new jsPDF({
+                    orientation: imgWidth > imgHeight ? 'landscape' : 'portrait',
+                    unit: 'px',
+                    format: [imgWidth / scale, imgHeight / scale]
+                });
+
+                pdf.addImage(imgData, 'PNG', 0, 0, imgWidth / scale, imgHeight / scale, undefined, 'FAST');
+
+                const timestamp = new Date().toISOString().slice(0, 19).replace(/:/g, '-');
+                pdf.save(`chamequinho-HD-${gridRows}x${gridCols}-${quality}-${timestamp}.pdf`);
+
+                showToast(`PDF ${quality} salvo!`, 'success');
+            } catch (error) {
+                showToast('Erro ao gerar PDF!', 'danger');
+            }
+        }
+
+        // Show Toast
+        function showToast(message, type = 'success') {
+            const toast = document.getElementById('toast');
+            const toastMessage = document.getElementById('toastMessage');
+            
+            toast.className = `toast align-items-center text-white border-0 bg-${type === 'info' ? 'primary' : type}`;
+            toastMessage.textContent = message;
+            
+            const bsToast = new bootstrap.Toast(toast);
+            bsToast.show();
+        }
+    </script>
+</body>
+</html>
