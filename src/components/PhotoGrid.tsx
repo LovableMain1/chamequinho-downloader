@@ -20,6 +20,8 @@ export const PhotoGrid = () => {
   const [dragActive, setDragActive] = useState(false);
   const [borderWidth, setBorderWidth] = useState(2);
   const [borderColor, setBorderColor] = useState('#000000');
+  const [paperWidth, setPaperWidth] = useState(800);
+  const [cellSize, setCellSize] = useState(100);
   const gridRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
@@ -232,18 +234,18 @@ export const PhotoGrid = () => {
   const totalSlots = gridSize.rows * gridSize.cols;
 
   return (
-    <div className="min-h-screen p-4 md:p-8">
-      <div className="max-w-7xl mx-auto space-y-8">
-        <div className="text-center space-y-4">
-          <div className="flex items-center justify-center gap-3">
-            <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-primary to-primary-glow flex items-center justify-center shadow-lg">
-              <Grid3x3 className="w-7 h-7 text-primary-foreground" />
+    <div className="min-h-screen p-2 sm:p-4 md:p-8">
+      <div className="max-w-7xl mx-auto space-y-4 md:space-y-8">
+        <div className="text-center space-y-2 md:space-y-4">
+          <div className="flex items-center justify-center gap-2 md:gap-3">
+            <div className="w-10 h-10 md:w-14 md:h-14 rounded-xl md:rounded-2xl bg-gradient-to-br from-primary to-primary-glow flex items-center justify-center shadow-lg">
+              <Grid3x3 className="w-5 h-5 md:w-7 md:h-7 text-primary-foreground" />
             </div>
-            <h1 className="text-4xl md:text-5xl font-bold bg-gradient-to-r from-primary via-primary-glow to-secondary bg-clip-text text-transparent">
+            <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl font-bold bg-gradient-to-r from-primary via-primary-glow to-secondary bg-clip-text text-transparent">
               Chamequinho Pro
             </h1>
           </div>
-          <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
+          <p className="text-muted-foreground text-sm md:text-lg max-w-2xl mx-auto px-2">
             Crie colagens profissionais com grid personalizável e download em alta qualidade
           </p>
         </div>
@@ -256,7 +258,7 @@ export const PhotoGrid = () => {
             onDrop={handleDrop}
             onClick={() => fileInputRef.current?.click()}
             className={cn(
-              "p-12 text-center cursor-pointer transition-all duration-300",
+              "p-6 sm:p-8 md:p-12 text-center cursor-pointer transition-all duration-300",
               "border-3 border-dashed border-border rounded-lg",
               "hover:border-primary hover:bg-primary/5",
               dragActive && "border-primary bg-primary/10 scale-[1.02]"
@@ -270,15 +272,15 @@ export const PhotoGrid = () => {
               onChange={handleChange}
               className="hidden"
             />
-            <div className="space-y-4">
-              <div className="mx-auto w-20 h-20 rounded-full bg-gradient-to-br from-primary to-secondary flex items-center justify-center shadow-lg">
-                <Upload className="w-10 h-10 text-white" />
+            <div className="space-y-3 md:space-y-4">
+              <div className="mx-auto w-14 h-14 md:w-20 md:h-20 rounded-full bg-gradient-to-br from-primary to-secondary flex items-center justify-center shadow-lg">
+                <Upload className="w-7 h-7 md:w-10 md:h-10 text-white" />
               </div>
               <div>
-                <p className="text-xl font-semibold mb-2">
+                <p className="text-base md:text-xl font-semibold mb-1 md:mb-2">
                   {dragActive ? "Solte as fotos aqui!" : "Arraste fotos ou clique para selecionar"}
                 </p>
-                <p className="text-muted-foreground">
+                <p className="text-muted-foreground text-sm md:text-base">
                   Suporta PNG, JPG, JPEG e WEBP
                 </p>
               </div>
@@ -287,10 +289,10 @@ export const PhotoGrid = () => {
         </Card>
 
         {photos.length > 0 && (
-          <Card className="glass p-6">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-xl font-bold flex items-center gap-2">
-                <ImageIcon className="w-5 h-5 text-primary" />
+          <Card className="glass p-4 md:p-6">
+            <div className="flex items-center justify-between mb-3 md:mb-4 flex-wrap gap-2">
+              <h2 className="text-base md:text-xl font-bold flex items-center gap-2">
+                <ImageIcon className="w-4 h-4 md:w-5 md:h-5 text-primary" />
                 Suas Fotos ({photos.length})
               </h2>
               <Button
@@ -304,7 +306,7 @@ export const PhotoGrid = () => {
                 Limpar Todas
               </Button>
             </div>
-            <div className="grid grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-3">
+            <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-2 md:gap-3">
               {photos.map((photo) => (
                 <div key={photo.id} className="relative group">
                   <div className="aspect-square rounded-lg overflow-hidden border-2 border-border hover:border-primary transition-colors cursor-pointer">
@@ -326,11 +328,11 @@ export const PhotoGrid = () => {
           </Card>
         )}
 
-        <Card className="glass p-6 space-y-6">
-          <h2 className="text-xl font-bold">Configurações do Grid</h2>
+        <Card className="glass p-4 md:p-6 space-y-4 md:space-y-6">
+          <h2 className="text-lg md:text-xl font-bold">Configurações do Grid</h2>
           
-          <div className="grid md:grid-cols-2 gap-6">
-            <div className="space-y-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 md:gap-6">
+            <div className="space-y-2 md:space-y-3">
               <label className="text-sm font-medium">
                 Linhas: {gridSize.rows}
               </label>
@@ -344,7 +346,7 @@ export const PhotoGrid = () => {
               />
             </div>
             
-            <div className="space-y-3">
+            <div className="space-y-2 md:space-y-3">
               <label className="text-sm font-medium">
                 Colunas: {gridSize.cols}
               </label>
@@ -359,8 +361,40 @@ export const PhotoGrid = () => {
             </div>
           </div>
 
-          <div className="grid md:grid-cols-2 gap-6">
-            <div className="space-y-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 md:gap-6">
+            <div className="space-y-2 md:space-y-3">
+              <label className="text-sm font-medium">
+                Largura da Folha: {paperWidth}px
+              </label>
+              <input
+                type="range"
+                min="300"
+                max="1920"
+                step="10"
+                value={paperWidth}
+                onChange={(e) => setPaperWidth(parseInt(e.target.value))}
+                className="w-full h-2 bg-muted rounded-lg appearance-none cursor-pointer accent-primary"
+              />
+            </div>
+            
+            <div className="space-y-2 md:space-y-3">
+              <label className="text-sm font-medium">
+                Tamanho da Célula: {cellSize}px
+              </label>
+              <input
+                type="range"
+                min="30"
+                max="300"
+                step="5"
+                value={cellSize}
+                onChange={(e) => setCellSize(parseInt(e.target.value))}
+                className="w-full h-2 bg-muted rounded-lg appearance-none cursor-pointer accent-primary"
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 md:gap-6">
+            <div className="space-y-2 md:space-y-3">
               <label className="text-sm font-medium">
                 Largura da Borda: {borderWidth}px
               </label>
@@ -374,16 +408,16 @@ export const PhotoGrid = () => {
               />
             </div>
             
-            <div className="space-y-3">
+            <div className="space-y-2 md:space-y-3">
               <label className="text-sm font-medium">
                 Cor da Borda
               </label>
-              <div className="flex gap-3 items-center">
+              <div className="flex gap-2 md:gap-3 items-center">
                 <input
                   type="color"
                   value={borderColor}
                   onChange={(e) => setBorderColor(e.target.value)}
-                  className="h-10 w-20 rounded cursor-pointer border-2 border-border"
+                  className="h-10 w-16 md:w-20 rounded cursor-pointer border-2 border-border"
                 />
                 <input
                   type="text"
@@ -396,13 +430,14 @@ export const PhotoGrid = () => {
             </div>
           </div>
 
-          <div className="space-y-3">
+          <div className="space-y-2 md:space-y-3">
             <label className="text-sm font-medium">Ajuste de Imagem</label>
-            <div className="flex gap-3">
+            <div className="flex gap-2 md:gap-3">
               <Button
                 variant={objectFit === 'contain' ? 'default' : 'outline'}
                 onClick={() => setObjectFit('contain')}
                 className="flex-1"
+                size="sm"
               >
                 Conter
               </Button>
@@ -410,34 +445,37 @@ export const PhotoGrid = () => {
                 variant={objectFit === 'cover' ? 'default' : 'outline'}
                 onClick={() => setObjectFit('cover')}
                 className="flex-1"
+                size="sm"
               >
                 Preencher
               </Button>
             </div>
           </div>
 
-          <div className="space-y-3">
+          <div className="space-y-2 md:space-y-3">
             <label className="text-sm font-medium">Preenchimento Automático</label>
             <Button
               onClick={fillAllSlots}
               className="w-full"
               variant="default"
+              size="sm"
             >
               Preencher Todas as Células
             </Button>
           </div>
         </Card>
 
-        <Card className="glass p-8">
+        <Card className="glass p-4 md:p-8 overflow-x-auto">
           <div
             ref={gridRef}
-            className="bg-white p-6 rounded-xl shadow-lg mx-auto max-w-4xl"
+            className="bg-white p-4 md:p-6 rounded-xl shadow-lg mx-auto"
             style={{
               display: 'grid',
-              gridTemplateColumns: `repeat(${gridSize.cols}, 1fr)`,
-              gridTemplateRows: `repeat(${gridSize.rows}, 1fr)`,
+              gridTemplateColumns: `repeat(${gridSize.cols}, ${cellSize}px)`,
+              gridTemplateRows: `repeat(${gridSize.rows}, ${cellSize}px)`,
               gap: '8px',
-              aspectRatio: `${gridSize.cols} / ${gridSize.rows}`
+              width: 'fit-content',
+              maxWidth: `${paperWidth}px`,
             }}
           >
             {Array.from({ length: totalSlots }).map((_, index) => {
