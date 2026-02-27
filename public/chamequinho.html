@@ -1,422 +1,539 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="pt-BR" data-theme="dark">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Chamequinho Pro - Gerador de Grid de Fotos</title>
+    <title>Chamequinho Pro — Grid de Fotos Profissional</title>
+    <meta name="description" content="Crie colagens profissionais com grid personalizável e download em alta qualidade HD.">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
     <style>
         :root {
-            --primary-color: #10b981;
-            --primary-dark: #059669;
-            --primary-light: #34d399;
-            --secondary-color: #06b6d4;
-            --bg-gradient: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0f172a 100%);
+            --accent: #00e88f;
+            --accent-dim: #00c477;
+            --accent-glow: rgba(0, 232, 143, 0.25);
+            --accent-subtle: rgba(0, 232, 143, 0.08);
+            --cyan: #00d4ff;
+            --magenta: #ff3d8e;
+            --surface-0: #07090e;
+            --surface-1: #0d1117;
+            --surface-2: #151b25;
+            --surface-3: #1c2433;
+            --surface-4: #242e40;
+            --border: rgba(255,255,255,0.06);
+            --border-hover: rgba(255,255,255,0.12);
+            --text-primary: #eaf0f6;
+            --text-secondary: #7b8da4;
+            --text-muted: #4a5568;
+            --radius: 14px;
+            --radius-sm: 8px;
+            --radius-xs: 6px;
+            --shadow-card: 0 2px 20px rgba(0,0,0,0.35);
+            --shadow-glow: 0 0 40px var(--accent-glow);
+            --transition: 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+            --font: 'Space Grotesk', system-ui, sans-serif;
+            --mono: 'JetBrains Mono', monospace;
         }
 
-        * {
-            box-sizing: border-box;
-        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        html { scroll-behavior: smooth; }
 
         body {
-            background: var(--bg-gradient);
+            background: var(--surface-0);
+            color: var(--text-primary);
+            font-family: var(--font);
             min-height: 100vh;
-            color: #e2e8f0;
-            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            overflow-x: hidden;
         }
 
-        .glass {
-            background: rgba(30, 41, 59, 0.8);
-            backdrop-filter: blur(12px);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: 1rem;
+        /* ─── Animated BG ─── */
+        .bg-mesh {
+            position: fixed; inset: 0; z-index: -1; pointer-events: none;
+            background:
+                radial-gradient(ellipse 80% 60% at 20% 10%, rgba(0,232,143,0.06) 0%, transparent 60%),
+                radial-gradient(ellipse 60% 50% at 80% 80%, rgba(0,212,255,0.04) 0%, transparent 60%),
+                radial-gradient(ellipse 50% 40% at 50% 50%, rgba(255,61,142,0.03) 0%, transparent 60%);
+            animation: meshShift 20s ease-in-out infinite alternate;
+        }
+        @keyframes meshShift {
+            0%   { filter: hue-rotate(0deg); }
+            100% { filter: hue-rotate(15deg); }
         }
 
-        .header-icon {
-            width: 56px;
-            height: 56px;
-            background: linear-gradient(135deg, var(--primary-color), var(--primary-light));
-            border-radius: 1rem;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            box-shadow: 0 10px 30px -10px rgba(16, 185, 129, 0.4);
+        /* ─── Glass Card ─── */
+        .card-glass {
+            background: linear-gradient(135deg, rgba(21,27,37,0.85), rgba(13,17,23,0.95));
+            backdrop-filter: blur(20px) saturate(1.4);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow-card);
+            transition: border-color var(--transition), box-shadow var(--transition);
         }
+        .card-glass:hover { border-color: var(--border-hover); }
 
-        .gradient-text {
-            background: linear-gradient(90deg, var(--primary-color), var(--primary-light), var(--secondary-color));
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
+        /* ─── Header ─── */
+        .hero { padding: 2.5rem 0 1.5rem; text-align: center; }
+        .hero-badge {
+            display: inline-flex; align-items: center; gap: 6px;
+            padding: 5px 14px; border-radius: 999px;
+            background: var(--accent-subtle); border: 1px solid rgba(0,232,143,0.15);
+            color: var(--accent); font-size: 0.7rem; font-weight: 600;
+            letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 1rem;
+        }
+        .hero-icon {
+            width: 60px; height: 60px; border-radius: 16px;
+            background: linear-gradient(135deg, var(--accent), var(--cyan));
+            display: inline-flex; align-items: center; justify-content: center;
+            box-shadow: var(--shadow-glow);
+            animation: pulse-glow 3s ease-in-out infinite;
+        }
+        @keyframes pulse-glow {
+            0%, 100% { box-shadow: 0 0 30px var(--accent-glow); }
+            50%      { box-shadow: 0 0 50px var(--accent-glow), 0 0 80px rgba(0,212,255,0.1); }
+        }
+        .hero h1 {
+            font-size: clamp(1.6rem, 5vw, 2.8rem); font-weight: 700;
+            background: linear-gradient(90deg, var(--accent), var(--cyan), var(--magenta));
+            background-size: 200% auto;
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
             background-clip: text;
+            animation: gradientSlide 6s linear infinite;
         }
+        @keyframes gradientSlide {
+            0%   { background-position: 0% center; }
+            100% { background-position: 200% center; }
+        }
+        .hero p { color: var(--text-secondary); font-size: clamp(0.85rem, 2vw, 1.05rem); max-width: 500px; margin: 0 auto; }
 
+        /* ─── Upload ─── */
         .upload-zone {
-            border: 3px dashed rgba(255, 255, 255, 0.2);
-            border-radius: 1rem;
-            padding: 3rem;
-            text-align: center;
-            cursor: pointer;
-            transition: all 0.3s ease;
+            border: 2px dashed rgba(255,255,255,0.08); border-radius: var(--radius);
+            padding: 2.5rem 1.5rem; text-align: center; cursor: pointer;
+            transition: all var(--transition); position: relative; overflow: hidden;
         }
-
-        .upload-zone:hover,
-        .upload-zone.drag-active {
-            border-color: var(--primary-color);
-            background: rgba(16, 185, 129, 0.1);
-            transform: scale(1.01);
+        .upload-zone::before {
+            content: ''; position: absolute; inset: 0;
+            background: radial-gradient(circle at center, var(--accent-glow) 0%, transparent 70%);
+            opacity: 0; transition: opacity var(--transition);
         }
-
-        .upload-icon {
-            width: 80px;
-            height: 80px;
-            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            margin: 0 auto 1rem;
-            box-shadow: 0 10px 30px -10px rgba(16, 185, 129, 0.5);
+        .upload-zone:hover, .upload-zone.drag-active {
+            border-color: var(--accent); transform: translateY(-2px);
         }
-
-        .photo-thumb {
-            position: relative;
-            aspect-ratio: 1;
-            border-radius: 0.5rem;
-            overflow: hidden;
-            border: 2px solid rgba(255, 255, 255, 0.1);
-            transition: border-color 0.2s;
+        .upload-zone:hover::before, .upload-zone.drag-active::before { opacity: 1; }
+        .upload-orb {
+            width: 72px; height: 72px; border-radius: 50%;
+            background: linear-gradient(135deg, var(--accent), var(--cyan));
+            display: inline-flex; align-items: center; justify-content: center;
+            margin-bottom: 1rem; box-shadow: 0 8px 30px rgba(0,232,143,0.3);
+            position: relative; z-index: 1;
         }
+        .upload-zone h6 { position: relative; z-index: 1; font-weight: 600; }
+        .upload-zone small { position: relative; z-index: 1; color: var(--text-muted); }
 
-        .photo-thumb:hover {
-            border-color: var(--primary-color);
+        /* ─── Photo Thumbs ─── */
+        .thumb-wrap {
+            position: relative; aspect-ratio: 1; border-radius: var(--radius-sm);
+            overflow: hidden; border: 2px solid var(--border); cursor: pointer;
+            transition: border-color var(--transition), transform var(--transition);
         }
-
-        .photo-thumb img {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
+        .thumb-wrap:hover { border-color: var(--accent); transform: scale(1.05); }
+        .thumb-wrap img { width: 100%; height: 100%; object-fit: cover; }
+        .thumb-x {
+            position: absolute; top: -6px; right: -6px; width: 22px; height: 22px;
+            background: var(--magenta); border: 2px solid var(--surface-1); border-radius: 50%;
+            color: #fff; display: flex; align-items: center; justify-content: center;
+            font-size: 10px; opacity: 0; transition: opacity var(--transition); cursor: pointer;
+            z-index: 2;
         }
+        .thumb-wrap:hover .thumb-x { opacity: 1; }
 
-        .photo-thumb .remove-btn {
-            position: absolute;
-            top: -8px;
-            right: -8px;
-            width: 24px;
-            height: 24px;
-            background: #ef4444;
-            border: none;
-            border-radius: 50%;
-            color: white;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            opacity: 0;
-            transition: opacity 0.2s;
-            cursor: pointer;
-            font-size: 12px;
+        /* ─── Controls ─── */
+        .ctrl-label {
+            display: flex; justify-content: space-between; align-items: baseline;
+            font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 6px; font-weight: 500;
         }
-
-        .photo-thumb:hover .remove-btn {
-            opacity: 1;
+        .ctrl-label .val {
+            font-family: var(--mono); font-size: 0.75rem; color: var(--accent);
+            background: var(--accent-subtle); padding: 1px 8px; border-radius: 4px;
         }
-
+        .form-range { height: 6px; }
         .form-range::-webkit-slider-thumb {
-            background: var(--primary-color);
+            background: var(--accent); border: 2px solid var(--surface-1);
+            width: 18px; height: 18px; box-shadow: 0 0 8px var(--accent-glow);
         }
-
         .form-range::-moz-range-thumb {
-            background: var(--primary-color);
+            background: var(--accent); border: 2px solid var(--surface-1);
+            width: 18px; height: 18px; box-shadow: 0 0 8px var(--accent-glow);
+        }
+        .form-range::-webkit-slider-runnable-track { background: var(--surface-4); border-radius: 4px; }
+        .form-range::-moz-range-track { background: var(--surface-4); border-radius: 4px; }
+
+        /* ─── Preset Chips ─── */
+        .preset-chip {
+            display: inline-flex; align-items: center; gap: 4px;
+            padding: 5px 12px; border-radius: 999px;
+            background: var(--surface-3); border: 1px solid var(--border);
+            color: var(--text-secondary); font-size: 0.75rem; font-weight: 500;
+            cursor: pointer; transition: all var(--transition); white-space: nowrap;
+        }
+        .preset-chip:hover, .preset-chip.active {
+            background: var(--accent); border-color: var(--accent); color: #000; font-weight: 600;
         }
 
-        .btn-primary-custom {
-            background: linear-gradient(135deg, var(--primary-color), var(--primary-dark));
-            border: none;
-            color: white;
-            transition: all 0.3s;
+        /* ─── Buttons ─── */
+        .btn-accent {
+            background: linear-gradient(135deg, var(--accent), var(--accent-dim));
+            border: none; color: #000; font-weight: 600; border-radius: var(--radius-sm);
+            transition: all var(--transition); position: relative; overflow: hidden;
         }
-
-        .btn-primary-custom:hover {
-            background: linear-gradient(135deg, var(--primary-light), var(--primary-color));
-            transform: translateY(-2px);
-            box-shadow: 0 10px 20px -10px rgba(16, 185, 129, 0.5);
+        .btn-accent::after {
+            content: ''; position: absolute; inset: 0;
+            background: linear-gradient(135deg, rgba(255,255,255,0.15), transparent);
+            opacity: 0; transition: opacity var(--transition);
         }
+        .btn-accent:hover { transform: translateY(-2px); box-shadow: 0 8px 25px rgba(0,232,143,0.3); color: #000; }
+        .btn-accent:hover::after { opacity: 1; }
 
-        .btn-outline-custom {
-            border: 2px solid rgba(255, 255, 255, 0.2);
-            color: #e2e8f0;
-            background: transparent;
-            transition: all 0.3s;
+        .btn-ghost {
+            background: transparent; border: 1px solid var(--border); color: var(--text-secondary);
+            border-radius: var(--radius-sm); font-weight: 500; transition: all var(--transition);
         }
+        .btn-ghost:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-subtle); }
+        .btn-ghost.active { background: var(--accent); border-color: var(--accent); color: #000; font-weight: 600; }
 
-        .btn-outline-custom:hover {
-            border-color: var(--primary-color);
-            background: rgba(16, 185, 129, 0.1);
-            color: var(--primary-light);
+        .btn-dl {
+            display: flex; align-items: center; gap: 10px; width: 100%;
+            padding: 10px 16px; border-radius: var(--radius-sm);
+            background: var(--surface-3); border: 1px solid var(--border);
+            color: var(--text-primary); font-size: 0.85rem; font-weight: 500;
+            cursor: pointer; transition: all var(--transition); text-align: left;
         }
-
-        .btn-outline-custom.active {
-            background: var(--primary-color);
-            border-color: var(--primary-color);
-            color: white;
+        .btn-dl:hover { border-color: var(--accent); background: var(--accent-subtle); transform: translateX(4px); }
+        .btn-dl.featured {
+            background: linear-gradient(135deg, rgba(0,232,143,0.12), rgba(0,212,255,0.08));
+            border-color: rgba(0,232,143,0.3);
         }
+        .btn-dl .dl-icon {
+            width: 34px; height: 34px; border-radius: var(--radius-xs);
+            background: var(--surface-4); display: flex; align-items: center; justify-content: center;
+            flex-shrink: 0;
+        }
+        .btn-dl.featured .dl-icon { background: var(--accent); color: #000; }
+        .btn-dl .dl-meta { font-size: 0.7rem; color: var(--text-muted); }
 
+        /* ─── Grid ─── */
+        .grid-viewport { overflow-x: auto; -webkit-overflow-scrolling: touch; padding: 4px; }
         #photoGrid {
-            background: white;
-            padding: 1.5rem;
-            border-radius: 1rem;
-            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+            background: #fff; padding: 1.5rem; border-radius: 12px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.4), 0 0 0 1px rgba(255,255,255,0.05);
         }
-
         .grid-slot {
-            position: relative;
-            overflow: hidden;
-            border-radius: 0.5rem;
-            cursor: pointer;
-            transition: box-shadow 0.2s;
-            background: linear-gradient(135deg, #f8fafc, #f1f5f9);
-            display: flex;
-            align-items: center;
-            justify-content: center;
+            position: relative; overflow: hidden; border-radius: 6px;
+            cursor: pointer; transition: box-shadow var(--transition);
+            display: flex; align-items: center; justify-content: center;
+            background: linear-gradient(135deg, #f7f8fa, #eef1f5);
+        }
+        .grid-slot:hover { box-shadow: 0 4px 15px rgba(0,0,0,0.15); }
+        .grid-slot img { width: 100%; height: 100%; }
+        .grid-slot .ph { color: #c8cfd8; font-size: 1.6rem; opacity: 0.4; }
+
+        /* ─── Section Header ─── */
+        .sec-head {
+            display: flex; align-items: center; gap: 10px; margin-bottom: 1rem;
+        }
+        .sec-head .sec-icon {
+            width: 32px; height: 32px; border-radius: var(--radius-xs);
+            background: var(--accent-subtle); display: flex; align-items: center; justify-content: center;
+            color: var(--accent); font-size: 0.9rem;
+        }
+        .sec-head h5 { font-size: 1rem; font-weight: 600; margin: 0; }
+        .sec-head .sec-count {
+            font-family: var(--mono); font-size: 0.7rem;
+            background: var(--accent-subtle); color: var(--accent);
+            padding: 2px 8px; border-radius: 999px;
         }
 
-        .grid-slot:hover {
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        /* ─── Gap Control ─── */
+        .color-input-wrap {
+            display: flex; gap: 8px; align-items: center;
+        }
+        .color-input-wrap input[type="color"] {
+            width: 44px; height: 36px; padding: 2px; border-radius: var(--radius-xs);
+            border: 2px solid var(--border); cursor: pointer; background: var(--surface-3);
+        }
+        .color-input-wrap input[type="text"] {
+            flex: 1; background: var(--surface-3); border: 1px solid var(--border);
+            color: var(--text-primary); border-radius: var(--radius-xs);
+            padding: 6px 10px; font-family: var(--mono); font-size: 0.8rem;
         }
 
-        .grid-slot img {
-            width: 100%;
-            height: 100%;
-        }
-
-        .grid-slot .placeholder-icon {
-            color: #cbd5e1;
-            font-size: 2rem;
-            opacity: 0.5;
-        }
-
+        /* ─── Tip Box ─── */
         .tip-box {
-            background: rgba(16, 185, 129, 0.1);
-            border: 1px solid rgba(16, 185, 129, 0.3);
-            border-radius: 0.5rem;
-            padding: 0.75rem 1rem;
+            background: linear-gradient(135deg, var(--accent-subtle), rgba(0,212,255,0.04));
+            border: 1px solid rgba(0,232,143,0.12); border-radius: var(--radius-sm);
+            padding: 12px 16px; font-size: 0.78rem; color: var(--text-secondary);
         }
 
-        .form-control-color {
-            width: 80px;
-            height: 40px;
-            padding: 0.25rem;
-            cursor: pointer;
+        /* ─── Footer ─── */
+        .footer-bar {
+            text-align: center; padding: 2rem 0 1.5rem;
+            color: var(--text-muted); font-size: 0.75rem;
+        }
+        .footer-bar span { color: var(--accent); }
+
+        /* ─── Toast Override ─── */
+        .toast {
+            border-radius: var(--radius-sm) !important;
+            font-family: var(--font) !important;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.5) !important;
         }
 
+        /* ─── Responsive ─── */
         @media (max-width: 768px) {
-            .upload-zone {
-                padding: 1.5rem 1rem;
-            }
-            
-            h1 {
-                font-size: 1.5rem !important;
-            }
-
-            .header-icon {
-                width: 40px;
-                height: 40px;
-            }
-
-            .header-icon i {
-                font-size: 1.25rem !important;
-            }
-
-            .upload-icon {
-                width: 60px;
-                height: 60px;
-            }
-
-            .upload-icon i {
-                font-size: 1.5rem !important;
-            }
+            .hero { padding: 1.5rem 0 1rem; }
+            .hero-icon { width: 48px; height: 48px; border-radius: 12px; }
+            .hero-icon i { font-size: 1.3rem !important; }
+            .upload-zone { padding: 1.5rem 1rem; }
+            .upload-orb { width: 56px; height: 56px; }
+            .card-glass { border-radius: 12px; }
+        }
+        @media (max-width: 480px) {
+            .hero h1 { font-size: 1.4rem; }
+            .hero p { font-size: 0.8rem; }
+            .preset-chip { font-size: 0.68rem; padding: 4px 10px; }
         }
 
-        @media (max-width: 576px) {
-            h1 {
-                font-size: 1.25rem !important;
-            }
+        /* ─── Scrollbar ─── */
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: var(--surface-1); }
+        ::-webkit-scrollbar-thumb { background: var(--surface-4); border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: var(--accent-dim); }
 
-            .glass {
-                padding: 0.75rem !important;
-            }
-
-            .form-label {
-                font-size: 0.85rem;
-            }
+        /* ─── Animations ─── */
+        .fade-up {
+            opacity: 0; transform: translateY(20px);
+            animation: fadeUp 0.5s ease forwards;
         }
-
-        .grid-container {
-            overflow-x: auto;
-            -webkit-overflow-scrolling: touch;
+        @keyframes fadeUp {
+            to { opacity: 1; transform: translateY(0); }
         }
+        .fade-up:nth-child(2) { animation-delay: 0.08s; }
+        .fade-up:nth-child(3) { animation-delay: 0.16s; }
+        .fade-up:nth-child(4) { animation-delay: 0.24s; }
+        .fade-up:nth-child(5) { animation-delay: 0.32s; }
+        .fade-up:nth-child(6) { animation-delay: 0.40s; }
     </style>
 </head>
 <body>
-    <div class="container py-4 py-md-5">
-        <div class="text-center mb-5">
-            <div class="d-flex align-items-center justify-content-center gap-3 mb-3">
-                <div class="header-icon">
-                    <i class="bi bi-grid-3x3 text-white fs-3"></i>
-                </div>
-                <h1 class="gradient-text fw-bold mb-0">Chamequinho Pro</h1>
-            </div>
-            <p class="text-secondary fs-5">Crie colagens profissionais com grid personalizável e download em alta qualidade</p>
-        </div>
+    <div class="bg-mesh"></div>
 
-        <!-- Upload Zone -->
-        <div class="glass p-4 mb-4">
+    <div class="container" style="max-width: 960px;">
+        <!-- ═══ Hero ═══ -->
+        <header class="hero fade-up">
+            <div class="hero-badge"><i class="bi bi-lightning-charge-fill"></i> Versão Pro</div>
+            <div class="d-flex align-items-center justify-content-center gap-3 mb-3">
+                <div class="hero-icon">
+                    <i class="bi bi-grid-3x3-gap-fill text-white fs-4"></i>
+                </div>
+                <h1>Chamequinho Pro</h1>
+            </div>
+            <p>Grid de fotos profissional com controle total e download em alta qualidade</p>
+        </header>
+
+        <!-- ═══ Upload ═══ -->
+        <section class="card-glass p-4 mb-3 fade-up" id="uploadCard">
             <div class="upload-zone" id="uploadZone" onclick="document.getElementById('fileInput').click()">
                 <input type="file" id="fileInput" multiple accept="image/*" class="d-none" onchange="handleFiles(this.files)">
-                <div class="upload-icon">
-                    <i class="bi bi-cloud-upload text-white fs-2"></i>
+                <div class="upload-orb">
+                    <i class="bi bi-cloud-arrow-up-fill text-white fs-3"></i>
                 </div>
-                <p class="fs-5 fw-semibold mb-2">Arraste fotos ou clique para selecionar</p>
-                <p class="text-secondary mb-0">Suporta PNG, JPG, JPEG e WEBP</p>
+                <h6 class="mb-1">Arraste fotos ou clique para selecionar</h6>
+                <small>PNG · JPG · JPEG · WEBP — Múltiplos arquivos</small>
             </div>
-        </div>
+        </section>
 
-        <!-- Photos Gallery -->
-        <div class="glass p-4 mb-4" id="photosGallery" style="display: none;">
+        <!-- ═══ Gallery ═══ -->
+        <section class="card-glass p-4 mb-3 fade-up" id="photosGallery" style="display:none;">
             <div class="d-flex justify-content-between align-items-center mb-3">
-                <h5 class="mb-0 d-flex align-items-center gap-2">
-                    <i class="bi bi-images text-success"></i>
-                    <span>Suas Fotos (<span id="photoCount">0</span>)</span>
-                </h5>
-                <button class="btn btn-outline-custom btn-sm" onclick="clearAllPhotos()">Limpar Todas</button>
+                <div class="sec-head mb-0">
+                    <div class="sec-icon"><i class="bi bi-images"></i></div>
+                    <h5>Fotos</h5>
+                    <span class="sec-count" id="photoCount">0</span>
+                </div>
+                <button class="btn btn-ghost btn-sm" onclick="clearAllPhotos()">
+                    <i class="bi bi-trash3 me-1"></i>Limpar
+                </button>
             </div>
             <div class="row g-2" id="photosList"></div>
-        </div>
+        </section>
 
-        <!-- Grid Settings -->
-        <div class="glass p-3 p-md-4 mb-4">
-            <h5 class="mb-3 mb-md-4 fw-bold">Configurações do Grid</h5>
-            
-            <div class="row g-3 g-md-4">
-                <div class="col-6 col-md-6">
-                    <label class="form-label">Linhas: <span id="rowsValue">3</span></label>
+        <!-- ═══ Controls ═══ -->
+        <section class="card-glass p-4 mb-3 fade-up">
+            <div class="sec-head">
+                <div class="sec-icon"><i class="bi bi-sliders"></i></div>
+                <h5>Configurações</h5>
+            </div>
+
+            <!-- Presets -->
+            <div class="mb-3">
+                <small class="text-muted d-block mb-2" style="font-size:0.72rem;font-weight:500;">PRESETS RÁPIDOS</small>
+                <div class="d-flex flex-wrap gap-2">
+                    <button class="preset-chip" onclick="applyPreset(2,2)">2×2</button>
+                    <button class="preset-chip active" onclick="applyPreset(3,3)">3×3</button>
+                    <button class="preset-chip" onclick="applyPreset(4,4)">4×4</button>
+                    <button class="preset-chip" onclick="applyPreset(5,5)">5×5</button>
+                    <button class="preset-chip" onclick="applyPreset(3,4)">3×4</button>
+                    <button class="preset-chip" onclick="applyPreset(4,6)">4×6</button>
+                    <button class="preset-chip" onclick="applyPreset(6,8)">6×8</button>
+                    <button class="preset-chip" onclick="applyPreset(8,10)">8×10</button>
+                </div>
+            </div>
+
+            <div class="row g-3">
+                <div class="col-6">
+                    <div class="ctrl-label"><span>Linhas</span><span class="val" id="rowsValue">3</span></div>
                     <input type="range" class="form-range" id="rowsInput" min="1" max="20" value="3" oninput="updateGrid()">
                 </div>
-                <div class="col-6 col-md-6">
-                    <label class="form-label">Colunas: <span id="colsValue">3</span></label>
+                <div class="col-6">
+                    <div class="ctrl-label"><span>Colunas</span><span class="val" id="colsValue">3</span></div>
                     <input type="range" class="form-range" id="colsInput" min="1" max="20" value="3" oninput="updateGrid()">
                 </div>
-            </div>
-
-            <div class="row g-3 g-md-4 mt-1 mt-md-2">
-                <div class="col-6 col-md-6">
-                    <label class="form-label">Largura da Folha: <span id="paperWidthValue">800</span>px</label>
+                <div class="col-6">
+                    <div class="ctrl-label"><span>Largura da Folha</span><span class="val" id="paperWidthValue">800px</span></div>
                     <input type="range" class="form-range" id="paperWidthInput" min="300" max="1920" step="10" value="800" oninput="updateGrid()">
                 </div>
-                <div class="col-6 col-md-6">
-                    <label class="form-label">Tamanho da Célula: <span id="cellSizeValue">100</span>px</label>
+                <div class="col-6">
+                    <div class="ctrl-label"><span>Tamanho da Célula</span><span class="val" id="cellSizeValue">100px</span></div>
                     <input type="range" class="form-range" id="cellSizeInput" min="30" max="300" step="5" value="100" oninput="updateGrid()">
                 </div>
-            </div>
-
-            <div class="row g-3 g-md-4 mt-1 mt-md-2">
-                <div class="col-6 col-md-6">
-                    <label class="form-label">Largura da Borda: <span id="borderWidthValue">2</span>px</label>
+                <div class="col-6">
+                    <div class="ctrl-label"><span>Espessura da Borda</span><span class="val" id="borderWidthValue">2px</span></div>
                     <input type="range" class="form-range" id="borderWidthInput" min="0" max="10" value="2" oninput="updateGrid()">
                 </div>
-                <div class="col-6 col-md-6">
-                    <label class="form-label">Cor da Borda</label>
-                    <div class="d-flex gap-2 align-items-center">
-                        <input type="color" class="form-control form-control-color" id="borderColorInput" value="#000000" oninput="updateGrid()">
-                        <input type="text" class="form-control bg-dark text-light border-secondary" id="borderColorText" value="#000000" oninput="syncColorInput()" style="font-family: monospace; font-size: 0.85rem;">
+                <div class="col-6">
+                    <div class="ctrl-label"><span>Espaçamento</span><span class="val" id="gapValue">8px</span></div>
+                    <input type="range" class="form-range" id="gapInput" min="0" max="30" value="8" oninput="updateGrid()">
+                </div>
+            </div>
+
+            <div class="row g-3 mt-1">
+                <div class="col-sm-6">
+                    <div class="ctrl-label"><span>Cor da Borda</span></div>
+                    <div class="color-input-wrap">
+                        <input type="color" id="borderColorInput" value="#000000" oninput="updateGrid()">
+                        <input type="text" id="borderColorText" value="#000000" oninput="syncColorInput()">
+                    </div>
+                </div>
+                <div class="col-sm-6">
+                    <div class="ctrl-label"><span>Fundo do Grid</span></div>
+                    <div class="color-input-wrap">
+                        <input type="color" id="bgColorInput" value="#ffffff" oninput="updateGrid()">
+                        <input type="text" id="bgColorText" value="#ffffff" oninput="syncBgColorInput()">
                     </div>
                 </div>
             </div>
 
-            <div class="mt-3 mt-md-4">
-                <label class="form-label">Ajuste de Imagem</label>
-                <div class="d-flex gap-2">
-                    <button class="btn btn-outline-custom flex-fill btn-sm" id="btnContain" onclick="setObjectFit('contain')">Conter</button>
-                    <button class="btn btn-outline-custom flex-fill btn-sm" id="btnCover" onclick="setObjectFit('cover')">Preencher</button>
+            <div class="row g-2 mt-2">
+                <div class="col-6">
+                    <div class="ctrl-label"><span>Ajuste de Imagem</span></div>
+                    <div class="d-flex gap-2">
+                        <button class="btn btn-ghost btn-sm flex-fill active" id="btnContain" onclick="setObjectFit('contain')">
+                            <i class="bi bi-aspect-ratio me-1"></i>Conter
+                        </button>
+                        <button class="btn btn-ghost btn-sm flex-fill" id="btnCover" onclick="setObjectFit('cover')">
+                            <i class="bi bi-arrows-fullscreen me-1"></i>Preencher
+                        </button>
+                    </div>
+                </div>
+                <div class="col-6">
+                    <div class="ctrl-label"><span>Ações Rápidas</span></div>
+                    <div class="d-flex gap-2">
+                        <button class="btn btn-accent btn-sm flex-fill" onclick="fillAllSlots()">
+                            <i class="bi bi-grid-fill me-1"></i>Preencher
+                        </button>
+                        <button class="btn btn-ghost btn-sm flex-fill" onclick="clearSlots()">
+                            <i class="bi bi-eraser me-1"></i>Limpar Grid
+                        </button>
+                    </div>
                 </div>
             </div>
+        </section>
 
-            <div class="mt-3 mt-md-4">
-                <label class="form-label">Preenchimento Automático</label>
-                <button class="btn btn-primary-custom w-100 btn-sm" onclick="fillAllSlots()">Preencher Todas as Células</button>
+        <!-- ═══ Grid Preview ═══ -->
+        <section class="card-glass p-3 p-md-4 mb-3 fade-up">
+            <div class="sec-head">
+                <div class="sec-icon"><i class="bi bi-eye"></i></div>
+                <h5>Visualização</h5>
+                <span class="sec-count" id="gridDimLabel">3×3 · 9 cells</span>
             </div>
-        </div>
-
-        <!-- Grid Preview -->
-        <div class="glass p-3 p-md-4 mb-4">
-            <div class="grid-container d-flex justify-content-center">
+            <div class="grid-viewport d-flex justify-content-center">
                 <div id="photoGrid"></div>
             </div>
-        </div>
+        </section>
 
-        <!-- Download Options -->
-        <div class="glass p-4">
-            <h5 class="mb-4 fw-bold d-flex align-items-center gap-2">
-                <i class="bi bi-download text-success"></i>
-                Download em Alta Qualidade
-            </h5>
-            
-            <div class="row g-4">
+        <!-- ═══ Downloads ═══ -->
+        <section class="card-glass p-4 mb-3 fade-up">
+            <div class="sec-head">
+                <div class="sec-icon"><i class="bi bi-download"></i></div>
+                <h5>Exportar</h5>
+            </div>
+
+            <div class="row g-3">
                 <div class="col-md-6">
-                    <div class="d-flex align-items-center gap-2 mb-3">
-                        <i class="bi bi-file-image text-success"></i>
-                        <span class="fw-semibold">Download como Imagem PNG</span>
-                    </div>
+                    <small class="text-muted d-block mb-2" style="font-size:0.72rem;font-weight:500;">IMAGEM PNG</small>
                     <div class="d-grid gap-2">
-                        <button class="btn btn-outline-custom text-start" onclick="downloadAsImage(2, 'media')">
-                            <i class="bi bi-download me-2"></i>Qualidade Média (2x)
+                        <button class="btn-dl" onclick="downloadAsImage(2, 'Média')">
+                            <div class="dl-icon"><i class="bi bi-image"></i></div>
+                            <div><div>Qualidade Média</div><div class="dl-meta">Escala 2x · Rápido</div></div>
                         </button>
-                        <button class="btn btn-outline-custom text-start" onclick="downloadAsImage(3, 'alta')">
-                            <i class="bi bi-download me-2"></i>Qualidade Alta (3x)
+                        <button class="btn-dl" onclick="downloadAsImage(3, 'Alta')">
+                            <div class="dl-icon"><i class="bi bi-image-fill"></i></div>
+                            <div><div>Qualidade Alta</div><div class="dl-meta">Escala 3x · Recomendado</div></div>
                         </button>
-                        <button class="btn btn-primary-custom text-start" onclick="downloadAsImage(4, 'ultra')">
-                            <i class="bi bi-download me-2"></i>Qualidade Ultra HD (4x)
+                        <button class="btn-dl featured" onclick="downloadAsImage(4, 'Ultra HD')">
+                            <div class="dl-icon"><i class="bi bi-stars"></i></div>
+                            <div><div>Ultra HD</div><div class="dl-meta">Escala 4x · Impressão profissional</div></div>
                         </button>
                     </div>
                 </div>
                 <div class="col-md-6">
-                    <div class="d-flex align-items-center gap-2 mb-3">
-                        <i class="bi bi-file-pdf text-success"></i>
-                        <span class="fw-semibold">Download como PDF</span>
-                    </div>
+                    <small class="text-muted d-block mb-2" style="font-size:0.72rem;font-weight:500;">DOCUMENTO PDF</small>
                     <div class="d-grid gap-2">
-                        <button class="btn btn-outline-custom text-start" onclick="downloadAsPDF(2, 'media')">
-                            <i class="bi bi-file-earmark-pdf me-2"></i>PDF Média (2x)
+                        <button class="btn-dl" onclick="downloadAsPDF(2, 'Média')">
+                            <div class="dl-icon"><i class="bi bi-file-pdf"></i></div>
+                            <div><div>PDF Média</div><div class="dl-meta">Escala 2x · Leve</div></div>
                         </button>
-                        <button class="btn btn-outline-custom text-start" onclick="downloadAsPDF(3, 'alta')">
-                            <i class="bi bi-file-earmark-pdf me-2"></i>PDF Alta (3x)
+                        <button class="btn-dl" onclick="downloadAsPDF(3, 'Alta')">
+                            <div class="dl-icon"><i class="bi bi-file-pdf-fill"></i></div>
+                            <div><div>PDF Alta</div><div class="dl-meta">Escala 3x · Recomendado</div></div>
                         </button>
-                        <button class="btn btn-primary-custom text-start" onclick="downloadAsPDF(4, 'ultra')">
-                            <i class="bi bi-file-earmark-pdf me-2"></i>PDF Ultra HD (4x)
+                        <button class="btn-dl featured" onclick="downloadAsPDF(4, 'Ultra HD')">
+                            <div class="dl-icon"><i class="bi bi-stars"></i></div>
+                            <div><div>PDF Ultra HD</div><div class="dl-meta">Escala 4x · Máxima qualidade</div></div>
                         </button>
                     </div>
                 </div>
             </div>
 
-            <div class="tip-box mt-4">
-                <p class="mb-0 small">
-                    💡 <strong>Dica:</strong> As bordas são mantidas no download para facilitar o recorte de cada logo. Qualidade Ultra HD (4x) oferece a melhor resolução para impressão profissional.
-                </p>
+            <div class="tip-box mt-3">
+                💡 <strong>Dica:</strong> Bordas são mantidas no download para facilitar o recorte. Ultra HD (4x) oferece a melhor resolução para impressão profissional.
             </div>
-        </div>
+        </section>
 
-        <footer class="text-center mt-5 text-secondary">
-            <p class="small mb-0">Chamequinho Pro - Ferramenta offline para criação de grids de fotos</p>
+        <footer class="footer-bar fade-up">
+            <span>Chamequinho Pro</span> — Ferramenta offline para grids de fotos profissionais
         </footer>
     </div>
 
-    <!-- Toast Container -->
-    <div class="toast-container position-fixed bottom-0 end-0 p-3">
-        <div id="toast" class="toast align-items-center text-white border-0" role="alert">
+    <!-- Toast -->
+    <div class="toast-container position-fixed bottom-0 end-0 p-3" style="z-index:9999;">
+        <div id="toast" class="toast align-items-center border-0" role="alert" style="background:var(--surface-3);color:var(--text-primary);">
             <div class="d-flex">
-                <div class="toast-body" id="toastMessage"></div>
+                <div class="toast-body d-flex align-items-center gap-2" id="toastMessage"></div>
                 <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
             </div>
         </div>
@@ -424,192 +541,188 @@
 
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
     <script>
-        // State
+        /* ═══════════════════════════════════════
+           STATE
+        ═══════════════════════════════════════ */
         let photos = [];
         let selectedSlots = {};
         let objectFit = 'contain';
-        let gridRows = 3;
-        let gridCols = 3;
-        let borderWidth = 2;
-        let borderColor = '#000000';
-        let paperWidth = 800;
-        let cellSize = 100;
+        let gridRows = 3, gridCols = 3;
+        let borderWidth = 2, borderColor = '#000000';
+        let paperWidth = 800, cellSize = 100, gridGap = 8;
+        let gridBgColor = '#ffffff';
 
-        // Initialize
+        /* ═══════════════════════════════════════
+           INIT
+        ═══════════════════════════════════════ */
         document.addEventListener('DOMContentLoaded', () => {
             setupDragAndDrop();
-            document.getElementById('btnContain').classList.add('active');
             updateGrid();
         });
 
-        // Drag and Drop
+        /* ═══════════════════════════════════════
+           DRAG & DROP
+        ═══════════════════════════════════════ */
         function setupDragAndDrop() {
             const zone = document.getElementById('uploadZone');
-            
-            ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
-                zone.addEventListener(eventName, (e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                });
-            });
-
-            ['dragenter', 'dragover'].forEach(eventName => {
-                zone.addEventListener(eventName, () => zone.classList.add('drag-active'));
-            });
-
-            ['dragleave', 'drop'].forEach(eventName => {
-                zone.addEventListener(eventName, () => zone.classList.remove('drag-active'));
-            });
-
-            zone.addEventListener('drop', (e) => {
-                handleFiles(e.dataTransfer.files);
-            });
+            ['dragenter','dragover','dragleave','drop'].forEach(ev =>
+                zone.addEventListener(ev, e => { e.preventDefault(); e.stopPropagation(); })
+            );
+            ['dragenter','dragover'].forEach(ev =>
+                zone.addEventListener(ev, () => zone.classList.add('drag-active'))
+            );
+            ['dragleave','drop'].forEach(ev =>
+                zone.addEventListener(ev, () => zone.classList.remove('drag-active'))
+            );
+            zone.addEventListener('drop', e => handleFiles(e.dataTransfer.files));
         }
 
-        // Handle Files
+        /* ═══════════════════════════════════════
+           FILE HANDLING
+        ═══════════════════════════════════════ */
         function handleFiles(files) {
-            if (!files || files.length === 0) return;
-
+            if (!files || !files.length) return;
             let added = 0;
             Array.from(files).forEach(file => {
-                if (file.type.startsWith('image/')) {
-                    const reader = new FileReader();
-                    reader.onload = (e) => {
-                        photos.push({
-                            id: Math.random().toString(36).substring(7),
-                            url: e.target.result
-                        });
-                        added++;
-                        updatePhotosGallery();
-                    };
-                    reader.readAsDataURL(file);
-                }
+                if (!file.type.startsWith('image/')) return;
+                const reader = new FileReader();
+                reader.onload = e => {
+                    photos.push({ id: crypto.randomUUID?.() || Math.random().toString(36).slice(2), url: e.target.result });
+                    added++;
+                    updatePhotosGallery();
+                };
+                reader.readAsDataURL(file);
             });
-
-            setTimeout(() => {
-                if (added > 0) {
-                    showToast(`${added} foto(s) carregada(s)!`, 'success');
-                }
-            }, 100);
+            setTimeout(() => { if (added) showToast(`${added} foto(s) carregada(s)`, 'success'); }, 200);
         }
 
-        // Update Photos Gallery
+        /* ═══════════════════════════════════════
+           GALLERY
+        ═══════════════════════════════════════ */
         function updatePhotosGallery() {
-            const gallery = document.getElementById('photosGallery');
+            const g = document.getElementById('photosGallery');
             const list = document.getElementById('photosList');
-            const count = document.getElementById('photoCount');
+            const cnt = document.getElementById('photoCount');
 
-            if (photos.length === 0) {
-                gallery.style.display = 'none';
-                return;
-            }
+            if (!photos.length) { g.style.display = 'none'; return; }
+            g.style.display = 'block';
+            cnt.textContent = photos.length;
 
-            gallery.style.display = 'block';
-            count.textContent = photos.length;
-
-            list.innerHTML = photos.map(photo => `
-                <div class="col-3 col-md-2 col-lg-1">
-                    <div class="photo-thumb">
-                        <img src="${photo.url}" alt="">
-                        <button class="remove-btn" onclick="removePhoto('${photo.id}')">
-                            <i class="bi bi-x"></i>
+            list.innerHTML = photos.map(p => `
+                <div class="col-3 col-sm-2 col-lg-1">
+                    <div class="thumb-wrap">
+                        <img src="${p.url}" alt="">
+                        <button class="thumb-x" onclick="event.stopPropagation();removePhoto('${p.id}')">
+                            <i class="bi bi-x-lg"></i>
                         </button>
                     </div>
                 </div>
             `).join('');
         }
 
-        // Remove Photo
         function removePhoto(id) {
             photos = photos.filter(p => p.id !== id);
-            Object.keys(selectedSlots).forEach(key => {
-                if (selectedSlots[key]?.id === id) {
-                    delete selectedSlots[key];
-                }
+            Object.keys(selectedSlots).forEach(k => {
+                if (selectedSlots[k]?.id === id) delete selectedSlots[k];
             });
             updatePhotosGallery();
             updateGrid();
         }
 
-        // Clear All Photos
         function clearAllPhotos() {
             photos = [];
             selectedSlots = {};
             updatePhotosGallery();
             updateGrid();
+            showToast('Fotos removidas', 'info');
         }
 
-        // Update Grid
+        /* ═══════════════════════════════════════
+           GRID
+        ═══════════════════════════════════════ */
         function updateGrid() {
-            gridRows = parseInt(document.getElementById('rowsInput').value);
-            gridCols = parseInt(document.getElementById('colsInput').value);
-            borderWidth = parseInt(document.getElementById('borderWidthInput').value);
+            gridRows = +document.getElementById('rowsInput').value;
+            gridCols = +document.getElementById('colsInput').value;
+            borderWidth = +document.getElementById('borderWidthInput').value;
             borderColor = document.getElementById('borderColorInput').value;
-            paperWidth = parseInt(document.getElementById('paperWidthInput').value);
-            cellSize = parseInt(document.getElementById('cellSizeInput').value);
+            paperWidth = +document.getElementById('paperWidthInput').value;
+            cellSize = +document.getElementById('cellSizeInput').value;
+            gridGap = +document.getElementById('gapInput').value;
+            gridBgColor = document.getElementById('bgColorInput').value;
 
+            // Update display values
             document.getElementById('rowsValue').textContent = gridRows;
             document.getElementById('colsValue').textContent = gridCols;
-            document.getElementById('borderWidthValue').textContent = borderWidth;
+            document.getElementById('borderWidthValue').textContent = borderWidth + 'px';
             document.getElementById('borderColorText').value = borderColor;
-            document.getElementById('paperWidthValue').textContent = paperWidth;
-            document.getElementById('cellSizeValue').textContent = cellSize;
+            document.getElementById('paperWidthValue').textContent = paperWidth + 'px';
+            document.getElementById('cellSizeValue').textContent = cellSize + 'px';
+            document.getElementById('gapValue').textContent = gridGap + 'px';
+            document.getElementById('bgColorText').value = gridBgColor;
+
+            const total = gridRows * gridCols;
+            document.getElementById('gridDimLabel').textContent = `${gridRows}×${gridCols} · ${total} cells`;
+
+            // Update preset chips
+            document.querySelectorAll('.preset-chip').forEach(c => {
+                const [r, col] = c.textContent.split('×').map(Number);
+                c.classList.toggle('active', r === gridRows && col === gridCols);
+            });
 
             const grid = document.getElementById('photoGrid');
-            const totalSlots = gridRows * gridCols;
+            grid.style.cssText = `
+                display:grid;
+                grid-template-columns:repeat(${gridCols},${cellSize}px);
+                grid-template-rows:repeat(${gridRows},${cellSize}px);
+                gap:${gridGap}px;
+                max-width:${paperWidth}px;
+                width:fit-content;
+                background:${gridBgColor};
+                padding:1.5rem;
+                border-radius:12px;
+                box-shadow:0 20px 60px rgba(0,0,0,0.4),0 0 0 1px rgba(255,255,255,0.05);
+            `;
 
-            grid.style.display = 'grid';
-            grid.style.gridTemplateColumns = `repeat(${gridCols}, ${cellSize}px)`;
-            grid.style.gridTemplateRows = `repeat(${gridRows}, ${cellSize}px)`;
-            grid.style.gap = '8px';
-            grid.style.maxWidth = `${paperWidth}px`;
-            grid.style.width = 'fit-content';
-
-            let html = '';
-            for (let i = 0; i < totalSlots; i++) {
+            const frag = document.createDocumentFragment();
+            for (let i = 0; i < total; i++) {
                 const photo = selectedSlots[i];
-                const bgColor = objectFit === 'contain' ? '#f8fafc' : 'white';
-                
-                html += `
-                    <div class="grid-slot" data-slot="${i}" onclick="handleSlotClick(${i})" 
-                         style="border: ${borderWidth}px solid ${borderColor}; background: ${bgColor}; width: ${cellSize}px; height: ${cellSize}px;">
-                        ${photo ? `
-                            <img src="${photo.url}" alt="" style="object-fit: ${objectFit}; background: ${bgColor};">
-                        ` : `
-                            <i class="bi bi-image placeholder-icon"></i>
-                        `}
-                    </div>
-                `;
+                const slot = document.createElement('div');
+                slot.className = 'grid-slot';
+                slot.style.cssText = `border:${borderWidth}px solid ${borderColor};width:${cellSize}px;height:${cellSize}px;`;
+                slot.onclick = () => handleSlotClick(i);
+
+                if (photo) {
+                    const img = document.createElement('img');
+                    img.src = photo.url;
+                    img.style.objectFit = objectFit;
+                    img.style.background = objectFit === 'contain' ? '#f8fafc' : 'transparent';
+                    slot.appendChild(img);
+                } else {
+                    const ph = document.createElement('i');
+                    ph.className = 'bi bi-image ph';
+                    slot.appendChild(ph);
+                }
+                frag.appendChild(slot);
             }
-            grid.innerHTML = html;
+            grid.innerHTML = '';
+            grid.appendChild(frag);
         }
 
-        // Sync Color Input
-        function syncColorInput() {
-            const text = document.getElementById('borderColorText').value;
-            if (/^#[0-9A-Fa-f]{6}$/.test(text)) {
-                document.getElementById('borderColorInput').value = text;
-                borderColor = text;
-                updateGrid();
-            }
-        }
-
-        // Handle Slot Click
-        function handleSlotClick(index) {
-            if (photos.length === 0) return;
-
-            const currentPhoto = selectedSlots[index];
-            if (currentPhoto) {
-                const currentIndex = photos.findIndex(p => p.id === currentPhoto.id);
-                const nextIndex = (currentIndex + 1) % photos.length;
-                selectedSlots[index] = photos[nextIndex];
+        /* ═══════════════════════════════════════
+           INTERACTIONS
+        ═══════════════════════════════════════ */
+        function handleSlotClick(i) {
+            if (!photos.length) return;
+            const cur = selectedSlots[i];
+            if (cur) {
+                const idx = photos.findIndex(p => p.id === cur.id);
+                selectedSlots[i] = photos[(idx + 1) % photos.length];
             } else {
-                selectedSlots[index] = photos[0];
+                selectedSlots[i] = photos[0];
             }
             updateGrid();
         }
 
-        // Set Object Fit
         function setObjectFit(fit) {
             objectFit = fit;
             document.getElementById('btnContain').classList.toggle('active', fit === 'contain');
@@ -617,96 +730,99 @@
             updateGrid();
         }
 
-        // Fill All Slots
         function fillAllSlots() {
-            if (photos.length === 0) {
-                showToast('Adicione fotos primeiro!', 'danger');
-                return;
-            }
-
-            const totalSlots = gridRows * gridCols;
-            for (let i = 0; i < totalSlots; i++) {
-                selectedSlots[i] = photos[i % photos.length];
-            }
+            if (!photos.length) { showToast('Adicione fotos primeiro!', 'warning'); return; }
+            const total = gridRows * gridCols;
+            for (let i = 0; i < total; i++) selectedSlots[i] = photos[i % photos.length];
             updateGrid();
             showToast('Grid preenchido!', 'success');
         }
 
-        // Download as Image
+        function clearSlots() {
+            selectedSlots = {};
+            updateGrid();
+            showToast('Grid limpo', 'info');
+        }
+
+        function applyPreset(r, c) {
+            document.getElementById('rowsInput').value = r;
+            document.getElementById('colsInput').value = c;
+            updateGrid();
+        }
+
+        function syncColorInput() {
+            const v = document.getElementById('borderColorText').value;
+            if (/^#[0-9A-Fa-f]{6}$/.test(v)) {
+                document.getElementById('borderColorInput').value = v;
+                updateGrid();
+            }
+        }
+
+        function syncBgColorInput() {
+            const v = document.getElementById('bgColorText').value;
+            if (/^#[0-9A-Fa-f]{6}$/.test(v)) {
+                document.getElementById('bgColorInput').value = v;
+                updateGrid();
+            }
+        }
+
+        /* ═══════════════════════════════════════
+           EXPORT
+        ═══════════════════════════════════════ */
         async function downloadAsImage(scale, quality) {
             const grid = document.getElementById('photoGrid');
             showToast(`Gerando imagem ${quality}...`, 'info');
-
             try {
                 const canvas = await html2canvas(grid, {
-                    scale: scale,
-                    backgroundColor: '#ffffff',
-                    logging: false,
-                    useCORS: true,
-                    allowTaint: true
+                    scale, backgroundColor: gridBgColor, logging: false,
+                    useCORS: true, allowTaint: true,
+                    width: grid.offsetWidth, height: grid.offsetHeight,
                 });
-
-                canvas.toBlob((blob) => {
+                canvas.toBlob(blob => {
+                    if (!blob) return;
                     const url = URL.createObjectURL(blob);
-                    const link = document.createElement('a');
-                    link.href = url;
-                    const timestamp = new Date().toISOString().slice(0, 19).replace(/:/g, '-');
-                    link.download = `chamequinho-HD-${gridRows}x${gridCols}-${quality}-${timestamp}.png`;
-                    link.click();
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `chamequinho-${gridRows}x${gridCols}-${quality}-${ts()}.png`;
+                    a.click();
                     URL.revokeObjectURL(url);
-                    showToast(`Imagem ${quality} salva! (${(blob.size / (1024 * 1024)).toFixed(1)}MB)`, 'success');
+                    showToast(`Imagem ${quality} salva! (${(blob.size/1048576).toFixed(1)}MB)`, 'success');
                 }, 'image/png', 1.0);
-            } catch (error) {
-                showToast('Erro ao gerar imagem!', 'danger');
-            }
+            } catch { showToast('Erro ao gerar imagem', 'danger'); }
         }
 
-        // Download as PDF
         async function downloadAsPDF(scale, quality) {
             const grid = document.getElementById('photoGrid');
             showToast(`Gerando PDF ${quality}...`, 'info');
-
             try {
                 const canvas = await html2canvas(grid, {
-                    scale: scale,
-                    backgroundColor: '#ffffff',
-                    logging: false,
-                    useCORS: true,
-                    allowTaint: true
+                    scale, backgroundColor: gridBgColor, logging: false,
+                    useCORS: true, allowTaint: true,
+                    width: grid.offsetWidth, height: grid.offsetHeight,
                 });
-
                 const imgData = canvas.toDataURL('image/png', 1.0);
-                const imgWidth = canvas.width;
-                const imgHeight = canvas.height;
-
+                const w = canvas.width, h = canvas.height;
                 const { jsPDF } = window.jspdf;
                 const pdf = new jsPDF({
-                    orientation: imgWidth > imgHeight ? 'landscape' : 'portrait',
-                    unit: 'px',
-                    format: [imgWidth / scale, imgHeight / scale]
+                    orientation: w > h ? 'landscape' : 'portrait',
+                    unit: 'px', format: [w / scale, h / scale]
                 });
-
-                pdf.addImage(imgData, 'PNG', 0, 0, imgWidth / scale, imgHeight / scale, undefined, 'FAST');
-
-                const timestamp = new Date().toISOString().slice(0, 19).replace(/:/g, '-');
-                pdf.save(`chamequinho-HD-${gridRows}x${gridCols}-${quality}-${timestamp}.pdf`);
-
+                pdf.addImage(imgData, 'PNG', 0, 0, w / scale, h / scale, undefined, 'FAST');
+                pdf.save(`chamequinho-${gridRows}x${gridCols}-${quality}-${ts()}.pdf`);
                 showToast(`PDF ${quality} salvo!`, 'success');
-            } catch (error) {
-                showToast('Erro ao gerar PDF!', 'danger');
-            }
+            } catch { showToast('Erro ao gerar PDF', 'danger'); }
         }
 
-        // Show Toast
-        function showToast(message, type = 'success') {
-            const toast = document.getElementById('toast');
-            const toastMessage = document.getElementById('toastMessage');
-            
-            toast.className = `toast align-items-center text-white border-0 bg-${type === 'info' ? 'primary' : type}`;
-            toastMessage.textContent = message;
-            
-            const bsToast = new bootstrap.Toast(toast);
-            bsToast.show();
+        function ts() { return new Date().toISOString().slice(0,19).replace(/:/g,'-'); }
+
+        /* ═══════════════════════════════════════
+           TOAST
+        ═══════════════════════════════════════ */
+        function showToast(msg, type = 'success') {
+            const icons = { success:'✅', info:'ℹ️', warning:'⚠️', danger:'❌' };
+            const el = document.getElementById('toast');
+            document.getElementById('toastMessage').innerHTML = `${icons[type]||''} ${msg}`;
+            new bootstrap.Toast(el, { delay: 3000 }).show();
         }
     </script>
 </body>
