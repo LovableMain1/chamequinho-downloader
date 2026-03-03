@@ -1,13 +1,14 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-╔══════════════════════════════════════╗
-║     USERBOT SILVA + BOT ADMIN  PRO   ║
-║  Consulta IPTV + Gestão de Grupos    ║
-║  Inline Mode + AutoMs + AutoReply    ║
-║  👤 Dono: Edivaldo Silva             ║
-║  🆔 ID: 2061557102                   ║
-╚══════════════════════════════════════╝
+╔══════════════════════════════════════════╗
+║  USERBOT SILVA + @InforUser_Bot  PRO     ║
+║  Sistema de Automação de Mensagens       ║
+║  Consulta URL + Inline Search + AutoMs   ║
+║  Paginação Avançada + Markdown           ║
+║  👤 Dono: Edivaldo Silva                 ║
+║  🆔 ID: 2061557102                       ║
+╚══════════════════════════════════════════╝
 """
 
 import os
@@ -47,6 +48,7 @@ GRUPOS_FILE = os.path.join(BASE_DIR, "grupos_permitidos.txt")
 AUTOMS_FILE = os.path.join(BASE_DIR, "automs.json")
 USERS_FILE = os.path.join(BASE_DIR, "usuarios.json")
 AUTOREPLY_FILE = os.path.join(BASE_DIR, "autoreply.json")
+MSGS_PRONTAS_FILE = os.path.join(BASE_DIR, "msgs_prontas.json")
 ITEMS_PER_PAGE = 5
 
 # ══════════════════════════════════════
@@ -229,6 +231,54 @@ def update_autom(index, title=None, message=None):
     return None
 
 # ══════════════════════════════════════
+# MENSAGENS PRONTAS (pré-configuradas)
+# ══════════════════════════════════════
+
+def load_msgs_prontas():
+    return safe_json_load(MSGS_PRONTAS_FILE, [])
+
+def save_msgs_prontas(msgs):
+    safe_json_save(MSGS_PRONTAS_FILE, msgs)
+
+def add_msg_pronta(title, message):
+    msgs = load_msgs_prontas()
+    msgs.append({
+        "title": title or "",
+        "message": message or "",
+        "ativa": True,
+        "criada_em": datetime.now().strftime('%d/%m/%Y %H:%M:%S')
+    })
+    save_msgs_prontas(msgs)
+    return len(msgs)
+
+def remove_msg_pronta(index):
+    msgs = load_msgs_prontas()
+    if 0 <= index < len(msgs):
+        removed = msgs.pop(index)
+        save_msgs_prontas(msgs)
+        return removed
+    return None
+
+def toggle_msg_pronta(index):
+    msgs = load_msgs_prontas()
+    if 0 <= index < len(msgs):
+        msgs[index]["ativa"] = not msgs[index].get("ativa", True)
+        save_msgs_prontas(msgs)
+        return msgs[index]
+    return None
+
+def update_msg_pronta(index, title=None, message=None):
+    msgs = load_msgs_prontas()
+    if 0 <= index < len(msgs):
+        if title is not None:
+            msgs[index]["title"] = title
+        if message is not None:
+            msgs[index]["message"] = message
+        save_msgs_prontas(msgs)
+        return msgs[index]
+    return None
+
+# ══════════════════════════════════════
 # AUTO-REPLY (Resposta automática em DM)
 # ══════════════════════════════════════
 
@@ -254,13 +304,20 @@ def set_autoreply(ativo, mensagem=None):
 autoreply_sent = set()
 
 # ══════════════════════════════════════
-# ESTADO DE EDIÇÃO (per-user)
+# ESTADO PER-USER (edição, envio, etc.)
 # ══════════════════════════════════════
 
 edit_states = {}
+# Estados possíveis:
+# {"action": "edit_autom", "index": N, "step": "choose|waiting", "field": "title|message"}
+# {"action": "set_autoreply", "step": "waiting"}
+# {"action": "edit_msgpronta", "index": N, "step": "choose|waiting", "field": "title|message"}
+# {"action": "add_msgpronta", "step": "title|message", "title": "...", "message": "..."}
+# {"action": "send_msgpronta", "index": N, "step": "waiting_target"}
+# {"action": "add_autom", "step": "title|message", "title": "...", "message": "..."}
 
 # ══════════════════════════════════════
-# FUNÇÕES DE CONSULTA IPTV
+# FUNÇÕES DE CONSULTA IPTV / URL
 # ══════════════════════════════════════
 
 def format_date(timestamp):
@@ -430,14 +487,14 @@ async def handle_dm_autoreply(event):
     await event.reply(ar["mensagem"], parse_mode='md')
 
 # ══════════════════════════════════════
-#  USERBOT — CONSULTA VIA REPLY
+#  USERBOT — CONSULTA VIA REPLY (URL)
 # ══════════════════════════════════════
 
 URL_PATTERN = r'(https?://[^\s]+)'
 
 @userbot.on(events.NewMessage(incoming=True))
 async def handle_incoming_reply(event):
-    """Responde consultas quando alguém responde a uma mensagem do userbot."""
+    """Responde consultas quando alguém responde a uma mensagem do userbot com URL."""
     if not event.is_reply:
         return
 
@@ -505,7 +562,7 @@ async def handle_incoming_reply(event):
             f"━━━━━━━━━━━━━━━━━━━━\n"
             f"👤 **De:** {sender_name} {sender_last} ({user_tag})\n"
             f"🆔 **ID:** `{sender_id}`\n"
-            f"💬 **Grupo:** `{event.chat_id}`\n"
+            f"💬 **Chat:** `{event.chat_id}`\n"
             f"🕐 **Data:** `{datetime.now().strftime('%d/%m/%Y %H:%M:%S')}`\n"
             f"━━━━━━━━━━━━━━━━━━━━\n"
             f"\n{result}"
@@ -516,7 +573,7 @@ async def handle_incoming_reply(event):
 
 @userbot.on(events.NewMessage(outgoing=True))
 async def handle_self_reply(event):
-    """Permite o próprio dono testar respondendo suas próprias mensagens."""
+    """Permite o próprio dono consultar respondendo suas próprias mensagens com URL."""
     if not event.is_reply:
         return
 
@@ -575,6 +632,95 @@ async def handle_self_reply(event):
         await userbot.send_message(CANAL_RESULTADOS_ID, channel_msg, parse_mode='md')
     except Exception as e:
         print(f"[!] Erro ao enviar ao canal: {e}")
+
+# ══════════════════════════════════════
+#  USERBOT — CONSULTA VIA @InforUser_Bot + URL
+#  O userbot detecta menções ao bot no chat
+#  e faz a consulta mesmo que o bot não esteja
+#  presente — basta o userbot estar no chat.
+# ══════════════════════════════════════
+
+@userbot.on(events.NewMessage(incoming=True))
+async def handle_bot_mention_query(event):
+    """
+    Detecta quando alguém escreve @InforUser_Bot + URL no chat.
+    O userbot faz a consulta e responde, mesmo que o bot não esteja no chat.
+    Apenas funciona em grupos permitidos.
+    """
+    if event.is_private:
+        return
+
+    text = event.raw_text or ""
+    # Verifica se a mensagem menciona @InforUser_Bot
+    mention_pattern = r'@InforUser_Bot\s+(https?://[^\s]+)'
+    match = re.search(mention_pattern, text, re.IGNORECASE)
+    if not match:
+        return
+
+    # Verifica se o grupo é permitido
+    if not is_group_allowed(event.chat_id):
+        return
+
+    url = match.group(1)
+    sender = await event.get_sender()
+    sender_name = getattr(sender, 'first_name', '') or ''
+    sender_last = getattr(sender, 'last_name', '') or ''
+    sender_username = getattr(sender, 'username', None)
+    sender_id = sender.id
+
+    register_user(sender_id, sender_name, sender_last, sender_username)
+
+    processing_msg = await event.reply(
+        f"╔══════════════════════════════╗\n"
+        f"║    ⏳ CONSULTANDO URL...       ║\n"
+        f"╚══════════════════════════════╝\n"
+        f"\n"
+        f"👤 **Solicitante:** {sender_name} {sender_last}\n"
+        f"🆔 **ID:** `{sender_id}`\n"
+        f"📡 Aguarde...",
+        parse_mode='md'
+    )
+
+    loop = asyncio.get_event_loop()
+    result, error = await loop.run_in_executor(None, check_url, url)
+
+    if error:
+        await processing_msg.edit(
+            f"╔══════════════════════════════╗\n"
+            f"║     ❌ CONSULTA FALHOU        ║\n"
+            f"╚══════════════════════════════╝\n"
+            f"\n"
+            f"👤 {sender_name} {sender_last}\n"
+            f"🆔 `{sender_id}`\n"
+            f"\n{error}",
+            parse_mode='md'
+        )
+        return
+
+    user_tag = f"@{sender_username}" if sender_username else f"`{sender_id}`"
+    header = (
+        f"👤 **Solicitante:** {sender_name} {sender_last}\n"
+        f"🆔 **ID:** `{sender_id}`\n"
+        f"📎 **User:** {user_tag}\n\n"
+    )
+
+    await processing_msg.edit(header + result, parse_mode='md')
+
+    # Log no canal
+    try:
+        channel_msg = (
+            f"📨 **Consulta via @InforUser\_Bot (Userbot)**\n"
+            f"━━━━━━━━━━━━━━━━━━━━\n"
+            f"👤 **De:** {sender_name} {sender_last} ({user_tag})\n"
+            f"🆔 **ID:** `{sender_id}`\n"
+            f"💬 **Chat:** `{event.chat_id}`\n"
+            f"🕐 **Data:** `{datetime.now().strftime('%d/%m/%Y %H:%M:%S')}`\n"
+            f"━━━━━━━━━━━━━━━━━━━━\n"
+            f"\n{result}"
+        )
+        await userbot.send_message(CANAL_RESULTADOS_ID, channel_msg, parse_mode='md')
+    except Exception as e:
+        print(f"[!] Erro ao enviar ao canal (mention): {e}")
 
 # ══════════════════════════════════════
 #  BOT — GESTÃO DE GRUPOS (com paginação)
@@ -642,19 +788,19 @@ async def bot_start(event):
         is_owner = event.sender_id == OWNER_ID
         text = (
             "╔══════════════════════════════╗\n"
-            "║   🤖 BOT SILVA IPTV  PRO      ║\n"
+            "║  🤖 SILVA AUTOMAÇÃO  PRO      ║\n"
             "╚══════════════════════════════╝\n"
             "\n"
-            "Bem-vindo! Sou o bot de consulta IPTV.\n\n"
-            "📡 **Modo Inline:** Use `@InforUser_Bot URL` em qualquer chat\n"
-            "📨 **Privado:** Envie uma URL IPTV aqui para consultar\n"
+            "Bem-vindo! Sistema de **automação de mensagens**\n"
+            "e consulta de URL.\n\n"
+            "📡 **Inline:** `@InforUser_Bot URL`\n"
+            "📨 **Privado:** Envie uma URL aqui\n"
             "📋 **Comandos:** /help\n"
         )
         if is_owner:
             text += (
                 "\n"
-                "👑 **Painel do Dono disponível!**\n"
-                "Use /help para ver todos os comandos.\n"
+                "👑 **Painel Admin disponível!**\n"
             )
         text += "\n╚══════════════════════════════╝"
 
@@ -662,8 +808,8 @@ async def bot_start(event):
         if is_owner:
             buttons = [
                 [Button.inline("📋 Grupos", data="grppage:0"), Button.inline("💬 AutoMs", data="autompage:0")],
-                [Button.inline("🔄 Auto-Reply", data="ar_panel"), Button.inline("👥 Usuários", data="userspage:0")],
-                [Button.inline("📊 Status", data="show_status")]
+                [Button.inline("📝 Msgs Prontas", data="mppage:0"), Button.inline("🔄 Auto-Reply", data="ar_panel")],
+                [Button.inline("👥 Usuários", data="userspage:0"), Button.inline("📊 Status", data="show_status")]
             ]
 
         await event.reply(text, buttons=buttons if buttons else None, parse_mode='md')
@@ -674,27 +820,29 @@ async def bot_help(event):
     is_owner = (event.sender_id == OWNER_ID)
     text = (
         "╔══════════════════════════════╗\n"
-        "║   📖 COMANDOS DO BOT          ║\n"
+        "║   📖 COMANDOS                 ║\n"
         "╚══════════════════════════════╝\n"
         "\n"
         "🔹 `/start` — Menu inicial\n"
         "🔹 `/help` — Esta mensagem\n"
-        "🔹 Envie uma **URL IPTV** no privado para consultar\n"
-        "🔹 Use **Inline:** `@InforUser_Bot URL`\n"
+        "🔹 Envie uma **URL** no privado para consultar\n"
+        "🔹 **Inline:** `@InforUser_Bot URL`\n"
     )
     if is_owner:
         text += (
             "\n"
-            "👑 **COMANDOS DO DONO:**\n"
-            "🔹 `/grupos` — Painel de gestão de grupos\n"
-            "🔹 `/addgrupo <id>` — Adicionar grupo (auto-detecta nome)\n"
+            "👑 **COMANDOS ADMIN:**\n"
+            "🔹 `/grupos` — Gestão de grupos\n"
+            "🔹 `/addgrupo <id>` — Adicionar grupo\n"
             "🔹 `/id` — Ver ID do chat\n"
             "🔹 `/status` — Status do sistema\n"
-            "🔹 `/automs` — Gerenciar mensagens automáticas\n"
-            "🔹 `/addautom <titulo> | <mensagem>` — Adicionar autom\n"
-            "🔹 `/autoreply` — Painel de auto-reply em DMs\n"
-            "🔹 `/usuarios` — Lista de usuários registrados\n"
-            "🔹 `/broadcast <mensagem>` — Enviar mensagem a todos\n"
+            "🔹 `/automs` — Mensagens automáticas\n"
+            "🔹 `/addautom <titulo> | <msg>` — Add autom\n"
+            "🔹 `/msgprontas` — Msgs pré-configuradas\n"
+            "🔹 `/addmsg <titulo> | <msg>` — Add msg pronta\n"
+            "🔹 `/autoreply` — Auto-reply em DMs\n"
+            "🔹 `/usuarios` — Usuários registrados\n"
+            "🔹 `/broadcast <msg>` — Enviar a todos\n"
         )
     text += "\n╚══════════════════════════════╝"
     await event.reply(text, parse_mode='md')
@@ -708,7 +856,7 @@ async def bot_grupos(event):
     text, buttons = build_groups_page(0)
     await event.reply(text, buttons=buttons, parse_mode='md')
 
-# ---------- BOT: Callback paginação ----------
+# ---------- BOT: Callback paginação grupos ----------
 @bot.on(events.CallbackQuery(pattern=r'^grppage:(\d+)$'))
 async def bot_callback_page(event):
     if event.sender_id != OWNER_ID:
@@ -756,7 +904,7 @@ async def bot_callback_add_prompt(event):
 async def bot_callback_noop(event):
     await event.answer()
 
-# ---------- BOT: /addgrupo (apenas ID, auto-detecta nome) ----------
+# ---------- BOT: /addgrupo ----------
 @bot.on(events.NewMessage(pattern=r'^/addgrupo\s+(-?\d+)(?:\s+(.+))?$'))
 async def bot_add_group(event):
     if event.sender_id != OWNER_ID:
@@ -765,7 +913,6 @@ async def bot_add_group(event):
     name = event.pattern_match.group(2)
 
     if not name:
-        # Tenta detectar nome automaticamente
         try:
             entity = await bot.get_entity(gid)
             name = getattr(entity, 'title', None) or getattr(entity, 'first_name', 'Grupo')
@@ -806,15 +953,18 @@ async def bot_status(event):
     automs = load_automs()
     users = load_users()
     ar = load_autoreply()
+    msgs = load_msgs_prontas()
     active_automs = sum(1 for a in automs if a.get("ativa", True))
+    active_msgs = sum(1 for m in msgs if m.get("ativa", True))
     await event.reply(
         f"╔══════════════════════════════╗\n"
         f"║   📊 STATUS DO SISTEMA        ║\n"
         f"╚══════════════════════════════╝\n"
         f"\n"
-        f"✅ **Bot Online**\n"
+        f"✅ **Bot + Userbot Online**\n"
         f"📋 **Grupos ativos:** `{len(groups)}`\n"
         f"💬 **AutoMs:** `{active_automs}/{len(automs)}`\n"
+        f"📝 **Msgs Prontas:** `{active_msgs}/{len(msgs)}`\n"
         f"👥 **Usuários:** `{len(users)}`\n"
         f"🔄 **Auto-Reply:** `{'✅ Ativo' if ar.get('ativo') else '❌ Inativo'}`\n"
         f"🕐 **Hora:** `{datetime.now().strftime('%d/%m/%Y %H:%M:%S')}`\n"
@@ -831,7 +981,9 @@ async def bot_callback_status(event):
     automs = load_automs()
     users = load_users()
     ar = load_autoreply()
+    msgs = load_msgs_prontas()
     active_automs = sum(1 for a in automs if a.get("ativa", True))
+    active_msgs = sum(1 for m in msgs if m.get("ativa", True))
     await event.answer()
     await event.reply(
         f"╔══════════════════════════════╗\n"
@@ -841,6 +993,7 @@ async def bot_callback_status(event):
         f"✅ **Bot + Userbot Online**\n"
         f"📋 **Grupos:** `{len(groups)}`\n"
         f"💬 **AutoMs:** `{active_automs}/{len(automs)}`\n"
+        f"📝 **Msgs Prontas:** `{active_msgs}/{len(msgs)}`\n"
         f"👥 **Usuários:** `{len(users)}`\n"
         f"🔄 **Auto-Reply:** `{'✅ Ativo' if ar.get('ativo') else '❌ Inativo'}`\n"
         f"🕐 `{datetime.now().strftime('%d/%m/%Y %H:%M:%S')}`\n"
@@ -854,7 +1007,7 @@ async def bot_callback_status(event):
 
 @bot.on(events.NewMessage(func=lambda e: e.is_private and not e.raw_text.startswith('/')))
 async def bot_private_query(event):
-    """Consulta IPTV quando o usuário envia URL no privado do bot."""
+    """Consulta URL quando o usuário envia no privado do bot."""
     sender = await event.get_sender()
     register_user(
         event.sender_id,
@@ -869,7 +1022,7 @@ async def bot_private_query(event):
         await handle_edit_state(event, state)
         return
 
-    # Verifica se é mensagem encaminhada (para add por forward)
+    # Verifica se é mensagem encaminhada (para identificar usuário)
     if event.sender_id == OWNER_ID and event.forward:
         fwd = event.forward
         fwd_id = getattr(fwd, 'sender_id', None) or getattr(fwd, 'from_id', None)
@@ -920,28 +1073,26 @@ async def bot_private_query(event):
         )
         return
 
+    # Verifica se contém URL
     match = re.search(URL_PATTERN, event.raw_text)
     if not match:
-        # Se não é URL, verifica se há AutoMs ativas
-        automs = load_automs()
-        active_automs = [am for am in automs if am.get("ativa", True)]
-        if active_automs and event.sender_id != OWNER_ID:
-            for am in active_automs:
-                msg = ""
-                if am.get("title"):
-                    msg += f"📌 **{am['title']}**\n\n"
-                if am.get("message"):
-                    msg += am["message"]
-                if msg:
-                    await event.reply(msg, parse_mode='md')
-            return
+        await event.reply(
+            "📡 Envie uma **URL** válida para consultar.\n\n"
+            "Ou use inline: `@InforUser_Bot URL`",
+            parse_mode='md'
+        )
         return
 
     url = match.group(1)
     sender_name = getattr(sender, 'first_name', '') or ''
+    sender_last = getattr(sender, 'last_name', '') or ''
+    sender_username = getattr(sender, 'username', None)
 
     processing_msg = await event.reply(
-        f"⏳ **Processando consulta...**\n👤 {sender_name}\n📡 Aguarde...",
+        f"╔══════════════════════════════╗\n"
+        f"║    ⏳ PROCESSANDO...          ║\n"
+        f"╚══════════════════════════════╝\n"
+        f"\n📡 Aguarde...",
         parse_mode='md'
     )
 
@@ -949,51 +1100,67 @@ async def bot_private_query(event):
     result, error = await loop.run_in_executor(None, check_url, url)
 
     if error:
-        await processing_msg.edit(f"❌ **Falhou**\n\n{error}", parse_mode='md')
+        await processing_msg.edit(
+            f"╔══════════════════════════════╗\n"
+            f"║     ❌ CONSULTA FALHOU        ║\n"
+            f"╚══════════════════════════════╝\n"
+            f"\n{error}",
+            parse_mode='md'
+        )
         return
 
-    await processing_msg.edit(result, parse_mode='md')
+    user_tag = f"@{sender_username}" if sender_username else f"`{event.sender_id}`"
+    header = (
+        f"👤 **Solicitante:** {sender_name} {sender_last}\n"
+        f"🆔 **ID:** `{event.sender_id}`\n\n"
+    )
 
-    # Envia para o canal
+    await processing_msg.edit(header + result, parse_mode='md')
+
+    # Log no canal
     try:
-        sender_username = getattr(sender, 'username', None)
-        user_tag = f"@{sender_username}" if sender_username else f"`{event.sender_id}`"
         channel_msg = (
-            f"📨 **Consulta via Bot (Privado)**\n"
+            f"📨 **Consulta (Privado Bot)**\n"
             f"━━━━━━━━━━━━━━━━━━━━\n"
-            f"👤 **De:** {sender_name} ({user_tag})\n"
+            f"👤 **De:** {sender_name} {sender_last} ({user_tag})\n"
             f"🆔 **ID:** `{event.sender_id}`\n"
             f"🕐 **Data:** `{datetime.now().strftime('%d/%m/%Y %H:%M:%S')}`\n"
             f"━━━━━━━━━━━━━━━━━━━━\n\n{result}"
         )
         await bot.send_message(CANAL_RESULTADOS_ID, channel_msg, parse_mode='md')
     except Exception as e:
-        print(f"[!] Erro ao enviar ao canal: {e}")
+        print(f"[!] Erro ao enviar ao canal (privado): {e}")
 
 # ══════════════════════════════════════
-#  BOT — INLINE MODE (@InforUser_Bot URL)
+#  BOT — INLINE MODE (@InforUser_Bot + URL)
 # ══════════════════════════════════════
 
 @bot.on(events.InlineQuery)
-async def inline_handler(event):
-    """Modo inline: @InforUser_Bot URL"""
+async def bot_inline_handler(event):
+    """Inline: @InforUser_Bot URL — mostra resultado inline."""
     query = event.text.strip()
 
     if not query:
-        await event.answer(
-            results=[],
-            switch_pm="Envie uma URL IPTV para consultar",
-            switch_pm_param="start"
+        builder = event.builder
+        article = builder.article(
+            title="📡 Silva Automação PRO",
+            description="Digite: @InforUser_Bot URL para consultar",
+            text="📡 Use: `@InforUser_Bot URL` para consultar uma URL.",
+            parse_mode='md'
         )
+        await event.answer([article])
         return
 
     match = re.search(URL_PATTERN, query)
     if not match:
-        await event.answer(
-            results=[],
-            switch_pm="URL inválida. Envie uma URL IPTV válida.",
-            switch_pm_param="start"
+        builder = event.builder
+        article = builder.article(
+            title="❌ URL não detectada",
+            description="Envie uma URL válida após @InforUser_Bot",
+            text="❌ Envie uma URL válida.\nExemplo: `@InforUser_Bot http://...`",
+            parse_mode='md'
         )
+        await event.answer([article])
         return
 
     url = match.group(1)
@@ -1049,7 +1216,7 @@ async def inline_handler(event):
 
     builder = event.builder
     article = builder.article(
-        title="✅ Resultado IPTV",
+        title="✅ Resultado da Consulta",
         description="Clique para enviar o resultado",
         text=result,
         parse_mode='md'
@@ -1113,7 +1280,6 @@ def build_automs_page(page=0):
     for idx, am in enumerate(page_automs):
         real_idx = start + idx
         status_icon = "✅" if am.get("ativa", True) else "❌"
-        title_short = (am.get('title') or 'msg')[:12]
         buttons.append([
             Button.inline(f"👁 Ver", data=f"viewautom:{real_idx}"),
             Button.inline(f"✏️ Editar", data=f"editautom:{real_idx}"),
@@ -1124,15 +1290,17 @@ def build_automs_page(page=0):
     nav_row = []
     if page > 0:
         nav_row.append(Button.inline("◀️ Voltar", data=f"autompage:{page - 1}"))
-    nav_row.append(Button.inline(f"📄 {page + 1}/{total_pages}", data="noop"))
+    if total > 0:
+        nav_row.append(Button.inline(f"📄 {page + 1}/{total_pages}", data="noop"))
     if page < total_pages - 1:
         nav_row.append(Button.inline("Avançar ▶️", data=f"autompage:{page + 1}"))
     if nav_row:
         buttons.append(nav_row)
 
     buttons.append([
-        Button.inline("➕ Adicionar Mensagem", data="addautom_prompt"),
-        Button.inline("🔄 Atualizar", data="autompage:0")
+        Button.inline("➕ Adicionar", data="addautom_prompt"),
+        Button.inline("🔄 Atualizar", data="autompage:0"),
+        Button.inline("⛔ Fechar", data="close_panel")
     ])
 
     return text, buttons
@@ -1181,7 +1349,8 @@ async def bot_callback_view_autom(event):
                     Button.inline("🔄 On/Off", data=f"toggleautom:{idx}"),
                     Button.inline("🗑 Apagar", data=f"rmautom:{idx}")
                 ],
-                [Button.inline("◀️ Voltar", data="autompage:0")]
+                [Button.inline("📤 Enviar", data=f"sendautom:{idx}"),
+                 Button.inline("◀️ Voltar", data="autompage:0")]
             ],
             parse_mode='md'
         )
@@ -1250,13 +1419,41 @@ async def bot_callback_cancel_edit(event):
     await event.answer("❌ Edição cancelada.")
     await event.delete()
 
+# Enviar AutoM para um chat
+@bot.on(events.CallbackQuery(pattern=r'^sendautom:(\d+)$'))
+async def bot_callback_send_autom(event):
+    if event.sender_id != OWNER_ID:
+        await event.answer("⛔ Sem permissão.", alert=True)
+        return
+    idx = int(event.pattern_match.group(1))
+    automs = load_automs()
+    if 0 <= idx < len(automs):
+        edit_states[event.sender_id] = {"action": "send_autom", "index": idx, "step": "waiting_target"}
+        await event.answer()
+        await event.reply(
+            f"📤 **Enviar AutoM #{idx + 1}**\n\n"
+            f"Envie o **ID do chat** ou **@username** do destinatário:\n\n"
+            f"💡 Pode enviar para usuário ou grupo.\n"
+            f"Envie /cancelar para desistir.",
+            parse_mode='md'
+        )
+    else:
+        await event.answer("❌ Não encontrada.", alert=True)
+
+# Fechar painel
+@bot.on(events.CallbackQuery(pattern=r'^close_panel$'))
+async def bot_callback_close(event):
+    await event.answer("✅ Painel fechado.")
+    await event.delete()
+
 async def handle_edit_state(event, state):
-    """Processa edição de AutoM em andamento."""
+    """Processa estados de edição/envio em andamento."""
     if event.raw_text == "/cancelar":
         edit_states.pop(event.sender_id, None)
-        await event.reply("❌ Edição cancelada.")
+        await event.reply("❌ Operação cancelada.")
         return
 
+    # --- Edit AutoM ---
     if state["action"] == "edit_autom" and state["step"] == "waiting":
         idx = state["index"]
         field = state["field"]
@@ -1281,6 +1478,7 @@ async def handle_edit_state(event, state):
         else:
             await event.reply("❌ Erro ao atualizar.", parse_mode='md')
 
+    # --- Set Auto-Reply ---
     elif state["action"] == "set_autoreply":
         new_msg = event.raw_text.strip()
         set_autoreply(True, new_msg)
@@ -1291,6 +1489,134 @@ async def handle_edit_state(event, state):
             f"Use /autoreply para gerenciar.",
             parse_mode='md'
         )
+
+    # --- Edit Msg Pronta ---
+    elif state["action"] == "edit_msgpronta" and state["step"] == "waiting":
+        idx = state["index"]
+        field = state["field"]
+        new_value = event.raw_text.strip()
+
+        if field == "title":
+            updated = update_msg_pronta(idx, title=new_value)
+        else:
+            updated = update_msg_pronta(idx, message=new_value)
+
+        edit_states.pop(event.sender_id, None)
+
+        if updated:
+            field_name = "Título" if field == "title" else "Mensagem"
+            await event.reply(
+                f"✅ **{field_name} atualizado!**\n\n"
+                f"📌 **Título:** {updated.get('title') or '(sem título)'}\n"
+                f"💬 **Preview:** {updated['message'][:80]}...\n\n"
+                f"Use /msgprontas para gerenciar.",
+                parse_mode='md'
+            )
+        else:
+            await event.reply("❌ Erro ao atualizar.", parse_mode='md')
+
+    # --- Add Msg Pronta step by step ---
+    elif state["action"] == "add_msgpronta":
+        if state["step"] == "title":
+            title = event.raw_text.strip()
+            edit_states[event.sender_id] = {"action": "add_msgpronta", "step": "message", "title": title}
+            await event.reply(
+                f"📋 Título: **{title or '(vazio)'}**\n\n"
+                f"Agora envie a **mensagem** (suporta Markdown):\n\n"
+                f"Envie /cancelar para desistir.",
+                parse_mode='md'
+            )
+        elif state["step"] == "message":
+            message = event.raw_text.strip()
+            title = state.get("title", "")
+            if not message:
+                await event.reply("❌ A mensagem não pode estar vazia.")
+                return
+            count = add_msg_pronta(title, message)
+            edit_states.pop(event.sender_id, None)
+            await event.reply(
+                f"✅ **Mensagem pronta adicionada!**\n\n"
+                f"📌 **Título:** {title or '(sem título)'}\n"
+                f"💬 **Preview:** {message[:80]}{'...' if len(message) > 80 else ''}\n"
+                f"📊 **Total:** `{count}`\n\n"
+                f"Use /msgprontas para gerenciar.",
+                buttons=[
+                    [Button.inline("👁 Review", data=f"viewmp:{count - 1}"),
+                     Button.inline("📝 Lista", data="mppage:0")]
+                ],
+                parse_mode='md'
+            )
+
+    # --- Send AutoM to target ---
+    elif state["action"] == "send_autom" and state["step"] == "waiting_target":
+        target = event.raw_text.strip()
+        idx = state["index"]
+        automs = load_automs()
+        edit_states.pop(event.sender_id, None)
+
+        if 0 <= idx < len(automs):
+            am = automs[idx]
+            try:
+                # Tenta resolver target
+                if target.startswith("@"):
+                    entity = await bot.get_entity(target)
+                elif target.lstrip("-").isdigit():
+                    entity = await bot.get_entity(int(target))
+                else:
+                    entity = await bot.get_entity(target)
+
+                msg_text = ""
+                if am.get("title"):
+                    msg_text += f"📌 **{am['title']}**\n\n"
+                msg_text += am["message"]
+
+                await bot.send_message(entity, msg_text, parse_mode='md')
+                target_name = getattr(entity, 'title', None) or getattr(entity, 'first_name', str(target))
+                await event.reply(
+                    f"✅ **Mensagem enviada!**\n\n"
+                    f"📌 **AutoM:** {am.get('title') or '(sem título)'}\n"
+                    f"📤 **Para:** {target_name}",
+                    parse_mode='md'
+                )
+            except Exception as e:
+                await event.reply(f"❌ Erro ao enviar: `{str(e)[:100]}`", parse_mode='md')
+        else:
+            await event.reply("❌ AutoM não encontrada.", parse_mode='md')
+
+    # --- Send Msg Pronta to target ---
+    elif state["action"] == "send_msgpronta" and state["step"] == "waiting_target":
+        target = event.raw_text.strip()
+        idx = state["index"]
+        msgs = load_msgs_prontas()
+        edit_states.pop(event.sender_id, None)
+
+        if 0 <= idx < len(msgs):
+            mp = msgs[idx]
+            try:
+                if target.startswith("@"):
+                    entity = await bot.get_entity(target)
+                elif target.lstrip("-").isdigit():
+                    entity = await bot.get_entity(int(target))
+                else:
+                    entity = await bot.get_entity(target)
+
+                msg_text = ""
+                if mp.get("title"):
+                    msg_text += f"📌 **{mp['title']}**\n\n"
+                msg_text += mp["message"]
+
+                await bot.send_message(entity, msg_text, parse_mode='md')
+                target_name = getattr(entity, 'title', None) or getattr(entity, 'first_name', str(target))
+                await event.reply(
+                    f"✅ **Mensagem pronta enviada!**\n\n"
+                    f"📌 **Msg:** {mp.get('title') or '(sem título)'}\n"
+                    f"📤 **Para:** {target_name}",
+                    parse_mode='md'
+                )
+            except Exception as e:
+                await event.reply(f"❌ Erro ao enviar: `{str(e)[:100]}`", parse_mode='md')
+        else:
+            await event.reply("❌ Mensagem pronta não encontrada.", parse_mode='md')
 
 @bot.on(events.CallbackQuery(pattern=r'^rmautom:(\d+)$'))
 async def bot_callback_remove_autom(event):
@@ -1355,6 +1681,263 @@ async def bot_add_autom(event):
     )
 
 # ══════════════════════════════════════
+#  BOT — MENSAGENS PRONTAS PRO
+#  (pré-configuradas com envio direto)
+# ══════════════════════════════════════
+
+MSGS_PER_PAGE = 5
+
+def build_msgs_prontas_page(page=0):
+    msgs = load_msgs_prontas()
+    total = len(msgs)
+    total_pages = max(1, math.ceil(total / MSGS_PER_PAGE))
+    page = max(0, min(page, total_pages - 1))
+
+    start = page * MSGS_PER_PAGE
+    end = start + MSGS_PER_PAGE
+    page_msgs = msgs[start:end]
+
+    text = (
+        f"╔══════════════════════════════╗\n"
+        f"║   📝 MENSAGENS PRONTAS        ║\n"
+        f"╚══════════════════════════════╝\n"
+        f"\n"
+        f"📊 **Total:** `{total}` mensagem(ns)\n"
+        f"📄 **Página:** `{page + 1}/{total_pages}`\n\n"
+    )
+
+    if not page_msgs:
+        text += "📭 Nenhuma mensagem pronta cadastrada.\n"
+    else:
+        for i, mp in enumerate(page_msgs, start=start + 1):
+            status = "✅" if mp.get("ativa", True) else "❌"
+            preview = mp['message'][:50] + "..." if len(mp['message']) > 50 else mp['message']
+            title_str = mp.get('title') or '(sem título)'
+            text += f"**{i}.** {status} 📌 **{title_str}**\n   _{preview}_\n\n"
+
+    text += "╚══════════════════════════════╝"
+
+    buttons = []
+    for idx, mp in enumerate(page_msgs):
+        real_idx = start + idx
+        status_icon = "✅" if mp.get("ativa", True) else "❌"
+        buttons.append([
+            Button.inline(f"👁 Ver", data=f"viewmp:{real_idx}"),
+            Button.inline(f"✏️ Edit", data=f"editmp:{real_idx}"),
+            Button.inline(f"📤 Enviar", data=f"sendmp:{real_idx}"),
+            Button.inline(f"🗑", data=f"rmmp:{real_idx}")
+        ])
+
+    nav_row = []
+    if page > 0:
+        nav_row.append(Button.inline("◀️ Voltar", data=f"mppage:{page - 1}"))
+    if total > 0:
+        nav_row.append(Button.inline(f"📄 {page + 1}/{total_pages}", data="noop"))
+    if page < total_pages - 1:
+        nav_row.append(Button.inline("Avançar ▶️", data=f"mppage:{page + 1}"))
+    if nav_row:
+        buttons.append(nav_row)
+
+    buttons.append([
+        Button.inline("➕ Adicionar", data="addmp_prompt"),
+        Button.inline("🔄 Atualizar", data="mppage:0"),
+        Button.inline("⛔ Fechar", data="close_panel")
+    ])
+
+    return text, buttons
+
+@bot.on(events.NewMessage(pattern=r'^/msgprontas$'))
+async def bot_msgs_prontas(event):
+    if event.sender_id != OWNER_ID:
+        return
+    text, buttons = build_msgs_prontas_page(0)
+    await event.reply(text, buttons=buttons, parse_mode='md')
+
+@bot.on(events.CallbackQuery(pattern=r'^mppage:(\d+)$'))
+async def bot_callback_mp_page(event):
+    if event.sender_id != OWNER_ID:
+        await event.answer("⛔ Sem permissão.", alert=True)
+        return
+    page = int(event.pattern_match.group(1))
+    text, buttons = build_msgs_prontas_page(page)
+    await event.edit(text, buttons=buttons, parse_mode='md')
+
+@bot.on(events.CallbackQuery(pattern=r'^viewmp:(\d+)$'))
+async def bot_callback_view_mp(event):
+    if event.sender_id != OWNER_ID:
+        await event.answer("⛔ Sem permissão.", alert=True)
+        return
+    idx = int(event.pattern_match.group(1))
+    msgs = load_msgs_prontas()
+    if 0 <= idx < len(msgs):
+        mp = msgs[idx]
+        status = "✅ Ativa" if mp.get("ativa", True) else "❌ Inativa"
+        title_str = mp.get('title') or '(sem título)'
+        await event.answer()
+        await event.reply(
+            f"╔══════════════════════════════╗\n"
+            f"║   📝 MSG PRONTA #{idx + 1}           ║\n"
+            f"╚══════════════════════════════╝\n"
+            f"\n"
+            f"📋 **Título:** {title_str}\n"
+            f"📊 **Status:** {status}\n"
+            f"📅 **Criada:** {mp.get('criada_em', 'N/D')}\n\n"
+            f"💬 **Mensagem:**\n{mp['message']}\n"
+            f"\n╚══════════════════════════════╝",
+            buttons=[
+                [
+                    Button.inline("✏️ Editar", data=f"editmp:{idx}"),
+                    Button.inline("📤 Enviar", data=f"sendmp:{idx}"),
+                    Button.inline("🗑 Apagar", data=f"rmmp:{idx}")
+                ],
+                [Button.inline("◀️ Voltar", data="mppage:0")]
+            ],
+            parse_mode='md'
+        )
+    else:
+        await event.answer("❌ Não encontrada.", alert=True)
+
+@bot.on(events.CallbackQuery(pattern=r'^editmp:(\d+)$'))
+async def bot_callback_edit_mp(event):
+    if event.sender_id != OWNER_ID:
+        await event.answer("⛔ Sem permissão.", alert=True)
+        return
+    idx = int(event.pattern_match.group(1))
+    msgs = load_msgs_prontas()
+    if 0 <= idx < len(msgs):
+        await event.answer()
+        await event.reply(
+            f"✏️ **Editando Msg Pronta #{idx + 1}**\n\nO que deseja editar?",
+            buttons=[
+                [Button.inline("📋 Título", data=f"editmpfield:title:{idx}"),
+                 Button.inline("💬 Mensagem", data=f"editmpfield:message:{idx}")],
+                [Button.inline("❌ Cancelar", data="canceledit")]
+            ],
+            parse_mode='md'
+        )
+    else:
+        await event.answer("❌ Não encontrada.", alert=True)
+
+@bot.on(events.CallbackQuery(pattern=r'^editmpfield:(title|message):(\d+)$'))
+async def bot_callback_edit_mp_field(event):
+    if event.sender_id != OWNER_ID:
+        await event.answer("⛔ Sem permissão.", alert=True)
+        return
+    field = event.pattern_match.group(1)
+    idx = int(event.pattern_match.group(2))
+    edit_states[event.sender_id] = {"action": "edit_msgpronta", "index": idx, "step": "waiting", "field": field}
+    await event.answer()
+    field_name = "título" if field == "title" else "mensagem"
+    await event.reply(
+        f"✏️ Envie o novo **{field_name}** para a Msg Pronta #{idx + 1}:\n\n"
+        f"(Envie qualquer texto ou /cancelar)",
+        parse_mode='md'
+    )
+
+@bot.on(events.CallbackQuery(pattern=r'^sendmp:(\d+)$'))
+async def bot_callback_send_mp(event):
+    if event.sender_id != OWNER_ID:
+        await event.answer("⛔ Sem permissão.", alert=True)
+        return
+    idx = int(event.pattern_match.group(1))
+    msgs = load_msgs_prontas()
+    if 0 <= idx < len(msgs):
+        edit_states[event.sender_id] = {"action": "send_msgpronta", "index": idx, "step": "waiting_target"}
+        await event.answer()
+        await event.reply(
+            f"📤 **Enviar Msg Pronta #{idx + 1}**\n\n"
+            f"Envie o **ID do chat** ou **@username** do destinatário:\n\n"
+            f"Envie /cancelar para desistir.",
+            parse_mode='md'
+        )
+    else:
+        await event.answer("❌ Não encontrada.", alert=True)
+
+@bot.on(events.CallbackQuery(pattern=r'^rmmp:(\d+)$'))
+async def bot_callback_remove_mp(event):
+    if event.sender_id != OWNER_ID:
+        await event.answer("⛔ Sem permissão.", alert=True)
+        return
+    idx = int(event.pattern_match.group(1))
+    removed = remove_msg_pronta(idx)
+    if removed:
+        await event.answer(f"✅ Msg '{removed.get('title', 'msg')}' removida!", alert=True)
+    else:
+        await event.answer("❌ Não encontrada.", alert=True)
+    text, buttons = build_msgs_prontas_page(0)
+    await event.edit(text, buttons=buttons, parse_mode='md')
+
+@bot.on(events.CallbackQuery(pattern=r'^addmp_prompt$'))
+async def bot_callback_add_mp_prompt(event):
+    if event.sender_id != OWNER_ID:
+        await event.answer("⛔ Sem permissão.", alert=True)
+        return
+    await event.answer()
+    await event.reply(
+        "╔══════════════════════════════╗\n"
+        "║   ➕ ADICIONAR MSG PRONTA     ║\n"
+        "╚══════════════════════════════╝\n"
+        "\n"
+        "**Opção 1** - Comando rápido:\n"
+        "`/addmsg Título | Mensagem`\n\n"
+        "**Opção 2** - Passo a passo:\n"
+        "Clique abaixo para iniciar.",
+        buttons=[
+            [Button.inline("📝 Criar passo a passo", data="addmp_wizard")],
+            [Button.inline("❌ Cancelar", data="close_panel")]
+        ],
+        parse_mode='md'
+    )
+
+@bot.on(events.CallbackQuery(pattern=r'^addmp_wizard$'))
+async def bot_callback_add_mp_wizard(event):
+    if event.sender_id != OWNER_ID:
+        await event.answer("⛔ Sem permissão.", alert=True)
+        return
+    edit_states[event.sender_id] = {"action": "add_msgpronta", "step": "title", "title": "", "message": ""}
+    await event.answer()
+    await event.reply(
+        "📋 **Passo 1/2 — Título**\n\n"
+        "Envie o **título** da mensagem pronta:\n"
+        "(Pode enviar vazio para pular)\n\n"
+        "Envie /cancelar para desistir.",
+        parse_mode='md'
+    )
+
+@bot.on(events.NewMessage(pattern=r'^/addmsg\s+(.+)$'))
+async def bot_add_msg_pronta(event):
+    if event.sender_id != OWNER_ID:
+        return
+
+    text = event.pattern_match.group(1).strip()
+    if '|' in text:
+        parts = text.split('|', 1)
+        title = parts[0].strip()
+        message = parts[1].strip()
+    else:
+        title = ""
+        message = text
+
+    if not message:
+        await event.reply("❌ A mensagem não pode estar vazia.", parse_mode='md')
+        return
+
+    count = add_msg_pronta(title, message)
+    title_str = title or "(sem título)"
+    await event.reply(
+        f"✅ **Mensagem pronta adicionada!**\n\n"
+        f"📌 **Título:** {title_str}\n"
+        f"💬 **Preview:** {message[:80]}{'...' if len(message) > 80 else ''}\n"
+        f"📊 **Total:** `{count}`\n\n"
+        f"Use /msgprontas para gerenciar.",
+        buttons=[
+            [Button.inline("👁 Review", data=f"viewmp:{count - 1}"),
+             Button.inline("📝 Lista", data="mppage:0")]
+        ],
+        parse_mode='md'
+    )
+
+# ══════════════════════════════════════
 #  BOT — AUTO-REPLY PANEL
 # ══════════════════════════════════════
 
@@ -1381,7 +1964,8 @@ def build_autoreply_panel():
             Button.inline("✅ Ativar" if not is_active else "❌ Desativar", data="ar_toggle"),
             Button.inline("✏️ Editar Mensagem", data="ar_edit")
         ],
-        [Button.inline("👁 Ver Completa", data="ar_view")]
+        [Button.inline("👁 Ver Completa", data="ar_view"),
+         Button.inline("⛔ Fechar", data="close_panel")]
     ]
 
     return text, buttons
@@ -1427,7 +2011,7 @@ async def bot_callback_ar_edit(event):
     await event.answer()
     await event.reply(
         "✏️ **Envie a nova mensagem de auto-reply:**\n\n"
-        "Suporta Markdown.\n"
+        "Suporta **Markdown**.\n"
         "Envie /cancelar para desistir.",
         parse_mode='md'
     )
@@ -1493,7 +2077,10 @@ def build_users_page(page=0):
     if nav_row:
         buttons.append(nav_row)
 
-    buttons.append([Button.inline("🔄 Atualizar", data="userspage:0")])
+    buttons.append([
+        Button.inline("🔄 Atualizar", data="userspage:0"),
+        Button.inline("⛔ Fechar", data="close_panel")
+    ])
 
     return text, buttons
 
@@ -1522,17 +2109,30 @@ async def bot_broadcast(event):
     users = load_users()
     sent = 0
     failed = 0
+
+    status_msg = await event.reply(
+        f"📣 **Broadcast em andamento...**\n\n"
+        f"📊 Total: `{len(users)}` usuário(s)\n"
+        f"⏳ Enviando...",
+        parse_mode='md'
+    )
+
     for u in users:
         try:
             await bot.send_message(u["id"], msg, parse_mode='md')
             sent += 1
         except Exception:
             failed += 1
-    await event.reply(
-        f"📣 **Broadcast concluído!**\n\n"
-        f"✅ Enviados: `{sent}`\n"
-        f"❌ Falharam: `{failed}`\n"
-        f"📊 Total: `{len(users)}`",
+
+    await status_msg.edit(
+        f"╔══════════════════════════════╗\n"
+        f"║   📣 BROADCAST CONCLUÍDO      ║\n"
+        f"╚══════════════════════════════╝\n"
+        f"\n"
+        f"✅ **Enviados:** `{sent}`\n"
+        f"❌ **Falharam:** `{failed}`\n"
+        f"📊 **Total:** `{len(users)}`\n"
+        f"\n╚══════════════════════════════╝",
         parse_mode='md'
     )
 
@@ -1620,6 +2220,7 @@ async def ub_help(event):
         "🔹 `/status` — Status\n"
         "🔹 `/help` — Ajuda\n"
         "\n📡 Responda minha mensagem com URL para consultar.\n"
+        "📡 Use `@InforUser_Bot URL` em grupos permitidos.\n"
         "\n╚══════════════════════════════╝",
         parse_mode='md'
     )
@@ -1631,6 +2232,7 @@ async def ub_status(event):
     automs = load_automs()
     users = load_users()
     ar = load_autoreply()
+    msgs = load_msgs_prontas()
     await event.reply(
         f"╔══════════════════════════════╗\n"
         f"║   📊 STATUS DO SISTEMA        ║\n"
@@ -1640,6 +2242,7 @@ async def ub_status(event):
         f"👤 {me.first_name} (@{me.username or 'N/A'})\n"
         f"📋 **Grupos:** `{len(groups)}`\n"
         f"💬 **AutoMs:** `{len(automs)}`\n"
+        f"📝 **Msgs Prontas:** `{len(msgs)}`\n"
         f"👥 **Usuários:** `{len(users)}`\n"
         f"🔄 **Auto-Reply:** `{'✅' if ar.get('ativo') else '❌'}`\n"
         f"🕐 `{datetime.now().strftime('%d/%m/%Y %H:%M:%S')}`\n"
@@ -1655,28 +2258,29 @@ async def main():
     await userbot.start(phone=PHONE)
     me = await userbot.get_me()
 
-    print("╔══════════════════════════════╗")
-    print("║   ✅ USERBOT SILVA ONLINE     ║")
-    print("╚══════════════════════════════╝")
+    print("╔══════════════════════════════════════════╗")
+    print("║   ✅ USERBOT SILVA AUTOMAÇÃO ONLINE       ║")
+    print("╚══════════════════════════════════════════╝")
     print(f"  👤 {me.first_name} (@{me.username or 'N/A'})")
     print(f"  🆔 {me.id}")
     print(f"  📋 Grupos: {len(load_groups())}")
     print(f"  💬 AutoMs: {len(load_automs())}")
+    print(f"  📝 Msgs Prontas: {len(load_msgs_prontas())}")
     print(f"  👥 Usuários: {len(load_users())}")
-    print("═══════════════════════════════")
+    print("═══════════════════════════════════════════")
 
     await bot.start(bot_token=BOT_TOKEN)
     bot_me = await bot.get_me()
 
-    print("╔══════════════════════════════╗")
-    print("║   🤖 BOT SILVA ONLINE  PRO    ║")
-    print("╚══════════════════════════════╝")
+    print("╔══════════════════════════════════════════╗")
+    print("║   🤖 @InforUser_Bot AUTOMAÇÃO ONLINE      ║")
+    print("╚══════════════════════════════════════════╝")
     print(f"  🤖 {bot_me.first_name} (@{bot_me.username or 'N/A'})")
     print(f"  🆔 {bot_me.id}")
-    print("═══════════════════════════════")
+    print("═══════════════════════════════════════════")
     print()
-    print("🚀 Sistema PRO rodando!")
-    print("   Userbot + Bot + Inline + AutoMs + AutoReply")
+    print("🚀 Sistema de Automação PRO rodando!")
+    print("   Userbot + Bot + Inline + AutoMs + Msgs Prontas + AutoReply")
     print(f"   👤 Dono: Edivaldo Silva ({OWNER_ID})")
     print()
 
