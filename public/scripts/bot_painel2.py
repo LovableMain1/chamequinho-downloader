@@ -1106,9 +1106,9 @@ def owner_panel_btns() -> list:
     ]
 
 # ═══════════════════════════════════════════════════════════════
-# TELEGRAM CLIENT
+# TELEGRAM CLIENT — DM-ONLY (sem grupos / tópicos)
 # ═══════════════════════════════════════════════════════════════
-SESSION_PATH = str(BASE_DIR / "dz_bot_v12")
+SESSION_PATH = str(BASE_DIR / "dz_bot_v13")
 bot = TelegramClient(SESSION_PATH, API_ID, API_HASH)
 
 def _event_chat_id(event) -> int:
@@ -1118,77 +1118,31 @@ def _event_chat_id(event) -> int:
         return int(event.sender_id)
 
 def _event_topic_id(event) -> int | None:
-    """Extrai topic id de mensagens de fórum (se houver)."""
-    try:
-        msg = getattr(event, "message", None) or event
-        # Telethon: ForumTopic via reply_to.forum_topic
-        rt = getattr(msg, "reply_to", None)
-        if rt is None:
-            return None
-        # forum_topic flag
-        if getattr(rt, "forum_topic", False):
-            return getattr(rt, "reply_to_top_id", None) \
-                   or getattr(rt, "reply_to_msg_id", None)
-        top = getattr(rt, "reply_to_top_id", None)
-        if top:
-            return top
-    except Exception:
-        pass
-    return None
-
-# Memoriza onde cada uid está atuando (chat,topic) para roteamento de envios
-_user_target: dict[int, tuple[int, int | None]] = {}
+    return None  # DM-only
 
 def _set_target(uid: int, chat_id: int, topic_id: int | None):
-    _user_target[uid] = (chat_id, topic_id)
+    return  # no-op
 
 def _target_for(uid: int) -> tuple[int, int | None]:
-    """Retorna (chat,topic) onde o bot deve enviar para esse uid."""
-    return _user_target.get(uid, (uid, None))
+    """Sempre envia para o DM do usuário."""
+    return (uid, None)
 
 def _send_kwargs(uid: int) -> dict:
-    """kwargs comuns para send_message/send_file respeitando tópico."""
-    chat, topic = _target_for(uid)
-    kw: dict = {}
-    if topic:
-        kw["reply_to"] = topic
-    return kw
+    return {}
 
 async def _gate(event, is_cb: bool = True) -> bool:
     """
-    Gate de origem:
-      - DMs: somente OWNER pode usar.
-      - Grupos: precisam estar registrados em groups_cfg; se houver
-        topic_id configurado, o bot só responde nesse tópico.
-      - Spam check em todos os casos.
+    Gate DM-only:
+      - O bot responde APENAS em conversas privadas.
+      - Em grupos / canais / supergrupos: silenciosamente ignora.
+      - Spam check sempre aplicado.
     """
     sender_id = event.sender_id
     chat_id   = _event_chat_id(event)
-    topic_id  = _event_topic_id(event)
     is_dm     = chat_id == sender_id
 
-    # Owner pode tudo
-    if sender_id != OWNER_ID:
-        if is_dm:
-            if is_cb:
-                await event.answer(
-                    "🔒 Este bot só funciona em grupos autorizados.",
-                    alert=True)
-            else:
-                try:
-                    await event.respond(
-                        "🔒 **Acesso restrito.**\n\n"
-                        "Este bot só responde em grupos/tópicos autorizados.",
-                        parse_mode="md")
-                except Exception:
-                    pass
-            return False
-        if not groups_cfg.is_allowed(chat_id, topic_id):
-            # Silencioso em chats/tópicos não autorizados
-            return False
-
-    # Memoriza destino para envios subsequentes
-    _set_target(sender_id, chat_id, groups_cfg.topic_for(chat_id) or topic_id)
+    if not is_dm:
+        return False
 
     ok, msg = spam.hit(sender_id)
     if not ok:
