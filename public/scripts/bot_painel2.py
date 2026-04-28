@@ -1698,6 +1698,67 @@ async def h_ow_panel(event):
         f"👥 ARLs pessoais: {user_arl.count()}",
         buttons=owner_panel_btns(), parse_mode="md")
 
+@bot.on(events.CallbackQuery(data=b"ow:grp"))
+@_owner
+async def h_ow_grp(event):
+    """Liga/desliga a permissão do bot ser adicionado a grupos.
+    Quando OFF, o bot sai automaticamente de qualquer grupo onde for adicionado."""
+    new_state = not admin_cfg.groups_allowed()
+    admin_cfg.set_groups_allowed(new_state)
+    if not new_state:
+        try:
+            left = 0
+            async for d in bot.iter_dialogs():
+                if d.is_group or d.is_channel:
+                    try:
+                        await bot.delete_dialog(d.entity)
+                        left += 1
+                    except Exception:
+                        pass
+            log.info(f"🚪 ow:grp OFF — saiu de {left} grupo(s)/canal(is).")
+        except Exception as e:
+            log.warning(f"ow:grp leave-all falhou: {e}")
+    await event.answer(
+        "✅ Grupos LIBERADOS — o bot pode ser adicionado a grupos."
+        if new_state else
+        "🚫 Grupos BLOQUEADOS — bot sairá automaticamente de qualquer grupo.",
+        alert=True)
+    try:
+        await event.edit(
+            f"⚙️ **Pool Deezer**\n\n{pool.status()}\n\n"
+            f"👥 ARLs pessoais: {user_arl.count()}",
+            buttons=owner_panel_btns(), parse_mode="md")
+    except Exception:
+        pass
+
+@bot.on(events.ChatAction)
+async def h_chat_action(event):
+    """Sai automaticamente de grupos/canais quando 'groups_allowed' está OFF."""
+    try:
+        if admin_cfg.groups_allowed():
+            return
+        chat = await event.get_chat()
+        is_group = getattr(chat, "megagroup", False) or \
+                   getattr(chat, "broadcast", False) or \
+                   bool(getattr(chat, "title", None))
+        if not is_group:
+            return
+        try:
+            await bot.send_message(
+                chat.id,
+                "🚫 Este bot funciona **apenas em DM (mensagem direta)**.\n"
+                "Saindo do grupo…",
+                parse_mode="md")
+        except Exception:
+            pass
+        try:
+            await bot.delete_dialog(chat)
+            log.info(f"🚪 Saí de {getattr(chat,'title','?')} ({chat.id})")
+        except Exception as e:
+            log.warning(f"Falha ao sair de {chat.id}: {e}")
+    except Exception as e:
+        log.debug(f"h_chat_action erro: {e}")
+
 @bot.on(events.CallbackQuery(data=b"ow:add"))
 @_owner
 async def h_ow_add(event):
