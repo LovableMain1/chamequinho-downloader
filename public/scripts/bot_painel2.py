@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
 """
-Deezer Bot — v12 (Mega Power) — pella.app edition
+Deezer Bot — v13 (DM-only PRO) — Silva Edition
+• Apenas DM (sem grupos / tópicos)
+• 128 kbps liberado para todos
+• 320 kbps + álbuns só para usuários com ARL premium própria
+• FLAC apenas para usuários whitelisted pelo OWNER
 • Card único atualizado in-place (foto preservada)
-• Seleção de formato: FLAC / MP3 320 / MP3 128
-• Botão Voltar funcional
-• Sem cards duplicados
 """
 
 # ═══════════════════════════════════════════════════════════════
