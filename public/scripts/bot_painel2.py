@@ -2045,81 +2045,63 @@ async def h_text(event):
                 buttons=[[Button.inline("◀️ Painel", b"ow:panel"),
                           Button.inline("🏠 Menu",   b"mn")]])
 
-        # ── Grupos / Tópicos / Permissões (NOVO) ──────────────
+        # ── FLAC Whitelist ────────────────────────────────────
         def _parse_int(t):
             try:
-                return int(t.strip())
+                return int(t.strip().lstrip("@"))
             except ValueError:
                 return None
 
-        if st.step == "wait_group_add":
-            cid = _parse_int(text)
-            if cid is None:
-                return await event.respond("❌ ID inválido.",
-                    buttons=[[Button.inline("❌ Cancelar", b"ow:groups")]])
-            groups_cfg.add_group(cid)
-            st.step = "idle"
-            return await event.respond(
-                f"✅ Grupo `{cid}` adicionado.", parse_mode="md",
-                buttons=[[Button.inline("👥 Grupos", b"ow:groups"),
-                          Button.inline("🏠 Menu",   b"mn")]])
+        async def _resolve_target(t: str) -> int | None:
+            t = t.strip()
+            n = _parse_int(t)
+            if n is not None:
+                return n
+            # tenta resolver @username
+            try:
+                ent = await bot.get_entity(t if t.startswith("@") else "@" + t)
+                return int(getattr(ent, "id", 0)) or None
+            except Exception:
+                return None
 
-        if st.step == "wait_group_rm":
-            cid = _parse_int(text)
-            if cid is None:
-                return await event.respond("❌ ID inválido.",
-                    buttons=[[Button.inline("❌ Cancelar", b"ow:groups")]])
-            ok2 = groups_cfg.remove_group(cid)
-            st.step = "idle"
-            return await event.respond(
-                "✅ Removido." if ok2 else "ℹ️ Não estava na lista.",
-                buttons=[[Button.inline("👥 Grupos", b"ow:groups"),
-                          Button.inline("🏠 Menu",   b"mn")]])
-
-        if st.step == "wait_set_topic":
-            # Formato: "<chat_id> <topic_id>"
-            parts = text.split()
-            if len(parts) == 2:
-                try:
-                    cid = int(parts[0]); tp = int(parts[1])
-                except ValueError:
-                    return await event.respond(
-                        "❌ Formato: `chat_id topic_id`", parse_mode="md")
-                groups_cfg.add_group(cid)
-                groups_cfg.set_topic(cid, tp)
-                st.step = "idle"
+        if st.step == "wait_flac_add":
+            # Se for encaminhada, pega o uid do remetente original
+            target = None
+            try:
+                if event.forward and getattr(event.forward, "sender_id", None):
+                    target = int(event.forward.sender_id)
+            except Exception:
+                pass
+            if target is None:
+                target = await _resolve_target(text)
+            if target is None:
                 return await event.respond(
-                    f"✅ Tópico `{tp}` definido em `{cid}`.",
-                    parse_mode="md",
-                    buttons=[[Button.inline("👥 Grupos", b"ow:groups"),
-                              Button.inline("🏠 Menu",   b"mn")]])
-            # caso contrário, aguarda mensagem encaminhada (h_forwarded_topic)
+                    "❌ Não consegui identificar o usuário.\n"
+                    "Envie ID numérico, @username ou encaminhe uma mensagem dele.",
+                    buttons=[[Button.inline("❌ Cancelar", b"ow:flac")]],
+                    parse_mode="md")
+            flac_wl.add(target)
+            st.step = "idle"
             return await event.respond(
-                "ℹ️ Aguardo: encaminhe uma mensagem do tópico, "
-                "ou envie `chat_id topic_id`.", parse_mode="md")
+                f"✅ Usuário `{target}` liberado para baixar em **FLAC**.",
+                parse_mode="md",
+                buttons=[[Button.inline("🎼 FLAC", b"ow:flac"),
+                          Button.inline("🏠 Menu", b"mn")]])
 
-        for step_name, kind, action in (
-            ("wait_exp_add", "explore", "add"),
-            ("wait_exp_rm",  "explore", "rm"),
-            ("wait_sr_add",  "search",  "add"),
-            ("wait_sr_rm",   "search",  "rm"),
-        ):
-            if st.step == step_name:
-                pid = _parse_int(text)
-                if pid is None:
-                    return await event.respond("❌ ID inválido.",
-                        buttons=[[Button.inline("❌ Cancelar", b"ow:perms")]])
-                if action == "add":
-                    perms.add(kind, pid)
-                    msg_done = f"✅ `{pid}` liberado em **{kind}**."
-                else:
-                    okp = perms.remove(kind, pid)
-                    msg_done = (f"✅ `{pid}` removido de **{kind}**."
-                                if okp else f"ℹ️ `{pid}` não estava em **{kind}**.")
-                st.step = "idle"
-                return await event.respond(msg_done, parse_mode="md",
-                    buttons=[[Button.inline("🛡 Permissões", b"ow:perms"),
-                              Button.inline("🏠 Menu",       b"mn")]])
+        if st.step == "wait_flac_rm":
+            target = await _resolve_target(text)
+            if target is None:
+                return await event.respond("❌ ID inválido.",
+                    buttons=[[Button.inline("❌ Cancelar", b"ow:flac")]])
+            ok2 = flac_wl.remove(target)
+            st.step = "idle"
+            return await event.respond(
+                (f"✅ Usuário `{target}` removido da whitelist FLAC."
+                 if ok2 else f"ℹ️ `{target}` não estava na whitelist."),
+                parse_mode="md",
+                buttons=[[Button.inline("🎼 FLAC", b"ow:flac"),
+                          Button.inline("🏠 Menu", b"mn")]])
+
 
     ok, wait = rate.check(uid)
     if not ok:
