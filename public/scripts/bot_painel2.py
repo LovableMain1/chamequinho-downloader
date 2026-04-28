@@ -938,9 +938,7 @@ def card_artist(a: dict) -> str:
 # BOTÕES — incluindo seleção de formato
 # ═══════════════════════════════════════════════════════════════
 def main_menu_btns(uid: int) -> list:
-    rows = []
-    if perms.can_explore(uid):
-        rows.append([Button.inline("🌐 Explorar", b"explore")])
+    rows = [[Button.inline("🌐 Explorar", b"explore")]]
     if uid == OWNER_ID:
         rows.append([Button.inline("🔑 Minha ARL Deezer", b"my_arl"),
                      Button.inline("⚙️ Pool Deezer", b"ow:panel")])
@@ -948,8 +946,8 @@ def main_menu_btns(uid: int) -> list:
         rows.append([Button.inline("🔑 Minha ARL Deezer", b"my_arl")])
     if uid == OWNER_ID:
         rows.append([
-            Button.inline("👥 Grupos/Tópicos", b"ow:groups"),
-            Button.inline("🛡 Permissões",     b"ow:perms"),
+            Button.inline("🎼 Liberar FLAC",      b"ow:flac"),
+            Button.inline("🎚 Qualidade Usuários", b"ow:quality"),
         ])
         rows.append([
             Button.inline("🔓 Remover Limitações", b"ow:unlimit"),
