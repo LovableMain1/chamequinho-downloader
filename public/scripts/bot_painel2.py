@@ -995,20 +995,28 @@ async def pager_btns(uid: int) -> list:
 
 def dl_format_btns(uid: int, tipo: str, has_premium: bool) -> list:
     """
-    Botões de seleção de formato.
+    Botões de seleção de formato — regras DM-only:
+      • Todos os usuários podem baixar em MP3 128 kbps.
+      • Usuário com ARL **premium** própria → MP3 320 kbps + álbuns.
+      • FLAC → apenas usuários liberados pelo OWNER (whitelist).
+      • OWNER tem todas as qualidades + ZIP de álbuns/playlists.
     Callback: dlstart:{bitrate}:{mode}:{uid}
       bitrate: 9=FLAC, 3=MP3_320, 1=MP3_128
       mode:    f=arquivos individuais, z=ZIP
-    Respeita qualidade máxima definida pelo admin por usuário.
+    Para usuários comuns: álbuns/playlists só em ZIP quando premium.
     """
     is_multi = tipo in ("album", "playlist")
     rows = []
 
-    # Qualidade máxima definida pelo admin (None = sem restrição)
+    can_flac    = flac_wl.can_flac(uid)
+    can_320     = has_premium or uid == OWNER_ID
+    # Admin pode restringir qualidade máxima manualmente
     max_q = admin_cfg.get_user_quality(uid)  # "9", "3", "1" ou None
 
     def _allowed(bitrate: str) -> bool:
-        if not has_premium and bitrate in ("9", "3"):
+        if bitrate == "9" and not can_flac:
+            return False
+        if bitrate == "3" and not can_320:
             return False
         if max_q is not None and int(bitrate) > int(max_q):
             return False
@@ -1017,11 +1025,12 @@ def dl_format_btns(uid: int, tipo: str, has_premium: bool) -> list:
     if _allowed("9"):
         if is_multi:
             rows.append([
-                Button.inline("🎵 FLAC — Arquivos", f"dlstart:9:f:{uid}".encode()),
-                Button.inline("🎵 FLAC — ZIP",      f"dlstart:9:z:{uid}".encode()),
+                Button.inline("🎼 FLAC — Arquivos", f"dlstart:9:f:{uid}".encode()),
+                Button.inline("🎼 FLAC — ZIP",      f"dlstart:9:z:{uid}".encode()),
             ])
         else:
-            rows.append([Button.inline("🎵 FLAC (Lossless)", f"dlstart:9:f:{uid}".encode())])
+            rows.append([Button.inline("🎼 FLAC (Lossless)",
+                                       f"dlstart:9:f:{uid}".encode())])
 
     if _allowed("3"):
         if is_multi:
@@ -1030,20 +1039,24 @@ def dl_format_btns(uid: int, tipo: str, has_premium: bool) -> list:
                 Button.inline("🎵 MP3 320 — ZIP",      f"dlstart:3:z:{uid}".encode()),
             ])
         else:
-            rows.append([Button.inline("🎵 MP3 320 kbps", f"dlstart:3:f:{uid}".encode())])
+            rows.append([Button.inline("🎵 MP3 320 kbps",
+                                       f"dlstart:3:f:{uid}".encode())])
 
     if _allowed("1"):
+        # 128 kbps: faixa única para todos; álbum/playlist somente para premium/OWNER
         if is_multi:
-            rows.append([
-                Button.inline("🎵 MP3 128 — Arquivos", f"dlstart:1:f:{uid}".encode()),
-                Button.inline("🎵 MP3 128 — ZIP",      f"dlstart:1:z:{uid}".encode()),
-            ])
+            if can_320:
+                rows.append([
+                    Button.inline("🎶 MP3 128 — Arquivos", f"dlstart:1:f:{uid}".encode()),
+                    Button.inline("🎶 MP3 128 — ZIP",      f"dlstart:1:z:{uid}".encode()),
+                ])
+            # Usuários sem premium não baixam álbum inteiro (apenas faixas únicas)
         else:
-            rows.append([Button.inline("🎵 MP3 128 kbps", f"dlstart:1:f:{uid}".encode())])
+            rows.append([Button.inline("🎶 MP3 128 kbps",
+                                       f"dlstart:1:f:{uid}".encode())])
 
     if not rows:
-        # Fallback: sem qualidade disponível
-        rows.append([Button.inline("🚫 Sem qualidade disponível", b"noop")])
+        rows.append([Button.inline("🚫 Sem qualidade disponível para este item", b"noop")])
 
     rows.append([
         Button.inline("◀️ Voltar", b"dl:back"),
