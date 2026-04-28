@@ -2839,14 +2839,14 @@ async def main():
     await bot.start(bot_token=BOT_TOKEN)
     log.info(
         f"\n{'═'*52}\n"
-        f"  🎵 Deezer Bot — v12 MEGA POWER (pella.app)\n"
-        f"  📁 Base dir      : {BASE_DIR}\n"
-        f"  📄 .env          : {ENV_PATH}\n"
+        f"  🎵 Deezer Bot — v13 DM-only PRO (Silva Edition)\n"
+        f"  💬 Modo: APENAS DMs (sem grupos)\n"
+        f"  🎶 Todos: MP3 128 | 💎 Premium: + MP3 320 | 🎼 FLAC: whitelist\n"
         f"  🟢 Pool Deezer   : {pool.count()} sessão(ões)\n"
         f"  🟢 ARLs pessoais : {user_arl.count()}\n"
+        f"  🎼 FLAC liberados: {len(flac_wl.list())}\n"
         f"  👥 Usuários reg. : {users_reg.count()}\n"
-        f"  ⚙️ Workers DL    : {MAX_GLOBAL_DL}\n"
-        f"  ⚙️ Workers UP    : {MAX_SEND_PARA}\n"
+        f"  ⚙️ Workers DL/UP : {MAX_GLOBAL_DL}/{MAX_SEND_PARA}\n"
         f"{'═'*52}"
     )
     await bot.run_until_disconnected()
