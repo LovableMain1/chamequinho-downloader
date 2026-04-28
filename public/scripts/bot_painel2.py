@@ -1099,9 +1099,9 @@ def owner_panel_btns() -> list:
         [Button.inline("🔄 Renovar sessões",  b"ow:refresh")],
         [Button.inline("🔓 Remover limitações", b"ow:unlimit"),
          Button.inline("📊 Estatísticas",      b"ow:stats")],
-        [Button.inline("🎚 Qualidade Usuários", b"ow:quality"),
-         Button.inline("👁 ARL Visível",        b"ow:arlvis")],
-        
+        [Button.inline("🎼 Liberar FLAC",       b"ow:flac"),
+         Button.inline("🎚 Qualidade Usuários", b"ow:quality")],
+        [Button.inline("👁 ARL Visível",        b"ow:arlvis")],
         [Button.inline("🏠 Menu", b"mn")],
     ]
 
