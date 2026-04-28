@@ -2923,7 +2923,7 @@ async def main():
     await bot.start(bot_token=BOT_TOKEN)
     log.info(
         f"\n{'═'*52}\n"
-        f"  🎵 Deezer Bot — v13 DM-only PRO (Silva Edition)\n"
+        f"  🎵 Deezer Bot — v14 DM-only PRO (Silva Edition)\n"
         f"  💬 Modo: APENAS DMs (sem grupos)\n"
         f"  🎶 Todos: MP3 128 | 💎 Premium: + MP3 320 | 🎼 FLAC: whitelist\n"
         f"  🟢 Pool Deezer   : {pool.count()} sessão(ões)\n"
