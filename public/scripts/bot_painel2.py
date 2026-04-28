@@ -255,135 +255,66 @@ class AdminConfig:
 admin_cfg = AdminConfig(ADMIN_CFG_FILE)
 
 # ═══════════════════════════════════════════════════════════════
-# GROUPS / TOPICS / PERMISSIONS  (NOVO)
+# FLAC WHITELIST (DM-only — sem grupos, sem permissões extras)
 # ═══════════════════════════════════════════════════════════════
-GROUPS_CFG_FILE = BASE_DIR / "groups_config.json"
-PERMS_FILE      = BASE_DIR / "permissions.json"
+FLAC_FILE = BASE_DIR / "flac_whitelist.json"
 
-class GroupsConfig:
-    """
-    Persiste:
-      groups: { "<chat_id>": { "topic_id": int|None, "title": str } }
-    Apenas grupos listados aqui serão atendidos pelo bot (DM = só owner).
-    Se topic_id estiver definido, o bot só responde naquele tópico
-    e envia downloads naquele tópico.
-    """
+class FlacWhitelist:
+    """UIDs liberados pelo OWNER para baixar em FLAC."""
     def __init__(self, path: Path):
         self.path = path
         self._lock = threading.Lock()
-        self._data: dict = {"groups": {}}
+        self._uids: set[int] = set()
         self._load()
 
     def _load(self):
         if self.path.exists():
             try:
                 d = json.loads(self.path.read_text(encoding="utf-8"))
-                self._data["groups"] = d.get("groups", {})
+                self._uids = set(int(x) for x in d.get("uids", []))
             except Exception:
-                pass
+                self._uids = set()
 
     def _save(self):
         self.path.write_text(
-            json.dumps(self._data, indent=2, ensure_ascii=False),
+            json.dumps({"uids": sorted(self._uids)},
+                       indent=2, ensure_ascii=False),
             encoding="utf-8")
 
-    def add_group(self, chat_id: int, title: str = ""):
+    def can_flac(self, uid: int) -> bool:
+        return uid == OWNER_ID or uid in self._uids
+
+    def add(self, uid: int):
         with self._lock:
-            key = str(chat_id)
-            cur = self._data["groups"].get(key, {})
-            cur["title"] = title or cur.get("title", "")
-            cur.setdefault("topic_id", None)
-            self._data["groups"][key] = cur
+            self._uids.add(int(uid))
             self._save()
 
-    def remove_group(self, chat_id: int) -> bool:
+    def remove(self, uid: int) -> bool:
         with self._lock:
-            key = str(chat_id)
-            if key in self._data["groups"]:
-                del self._data["groups"][key]
+            if uid in self._uids:
+                self._uids.discard(int(uid))
                 self._save()
                 return True
             return False
 
-    def set_topic(self, chat_id: int, topic_id: int | None):
-        with self._lock:
-            key = str(chat_id)
-            cur = self._data["groups"].get(key, {"title": "", "topic_id": None})
-            cur["topic_id"] = topic_id
-            self._data["groups"][key] = cur
-            self._save()
+    def list(self) -> list[int]:
+        return sorted(self._uids)
 
-    def is_allowed(self, chat_id: int, topic_id: int | None) -> bool:
-        key = str(chat_id)
-        g = self._data["groups"].get(key)
-        if not g:
-            return False
-        cfg_topic = g.get("topic_id")
-        if cfg_topic is None:
-            return True  # grupo inteiro liberado
-        return cfg_topic == (topic_id or 0) or cfg_topic == topic_id
-
-    def topic_for(self, chat_id: int) -> int | None:
-        g = self._data["groups"].get(str(chat_id))
-        return (g or {}).get("topic_id")
-
-    def list_groups(self) -> dict:
-        return dict(self._data["groups"])
-
-groups_cfg = GroupsConfig(GROUPS_CFG_FILE)
+flac_wl = FlacWhitelist(FLAC_FILE)
 
 
-class PermissionsManager:
-    """
-    Persiste:
-      explore: [uid, ...]   → uids autorizados a usar 'Explorar'
-      search:  [uid, ...]   → uids autorizados a busca por termo
-                              em grupo permitido (owner sempre pode)
-    """
-    def __init__(self, path: Path):
-        self.path = path
-        self._lock = threading.Lock()
-        self._data: dict = {"explore": [], "search": []}
-        self._load()
+def _is_premium_plan(plan: str) -> bool:
+    """Detecta se o plano da ARL é premium (libera 320/álbuns)."""
+    if not plan:
+        return False
+    p = str(plan).lower()
+    bad = ("free", "gratu", "discovery", "—", "deezer free")
+    if any(b in p for b in bad):
+        return False
+    good = ("premium", "hifi", "hi-fi", "family", "student",
+            "duo", "plus", "deluxe")
+    return any(g in p for g in good)
 
-    def _load(self):
-        if self.path.exists():
-            try:
-                d = json.loads(self.path.read_text(encoding="utf-8"))
-                self._data["explore"] = list(d.get("explore", []))
-                self._data["search"]  = list(d.get("search", []))
-            except Exception:
-                pass
-
-    def _save(self):
-        self.path.write_text(
-            json.dumps(self._data, indent=2, ensure_ascii=False),
-            encoding="utf-8")
-
-    def can_explore(self, uid: int) -> bool:
-        return uid == OWNER_ID or uid in self._data["explore"]
-
-    def can_search(self, uid: int) -> bool:
-        return uid == OWNER_ID or uid in self._data["search"]
-
-    def add(self, kind: str, uid: int):
-        with self._lock:
-            if uid not in self._data[kind]:
-                self._data[kind].append(uid)
-                self._save()
-
-    def remove(self, kind: str, uid: int) -> bool:
-        with self._lock:
-            if uid in self._data[kind]:
-                self._data[kind].remove(uid)
-                self._save()
-                return True
-            return False
-
-    def list(self, kind: str) -> list:
-        return list(self._data[kind])
-
-perms = PermissionsManager(PERMS_FILE)
 
 
 # ═══════════════════════════════════════════════════════════════
