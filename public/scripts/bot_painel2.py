@@ -431,7 +431,13 @@ class UserARLManager:
         return self._c.get(uid)
 
     def is_premium(self, uid: int) -> bool:
-        """Verifica se o usuário tem ARL configurada (tratada como premium)."""
+        """Apenas usuários com ARL própria de plano premium."""
+        d = self._c.get(uid)
+        if not d:
+            return False
+        return _is_premium_plan(d.get("plan", ""))
+
+    def has_arl(self, uid: int) -> bool:
         return uid in self._c
 
     def count(self) -> int:
