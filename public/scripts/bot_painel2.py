@@ -1215,6 +1215,7 @@ async def send_menu(uid: int, event=None):
     nav(uid).clear()
     arl_d  = user_arl.get(uid)
     is_prem = user_arl.is_premium(uid)
+    has_arl = arl_d is not None
     can_flac = flac_wl.can_flac(uid)
 
     if arl_d:
@@ -1224,20 +1225,21 @@ async def send_menu(uid: int, event=None):
         else:
             arl_tag = f"🔑 ARL: ✅ _{arl_d.get('name','Configurada')}_ — 🆓 {plan}\n"
     else:
-        arl_tag = "🔑 ARL: ❌ Não configurada (somente MP3 128 kbps)\n"
+        arl_tag = "🔑 ARL: ❌ Não configurada (usando pool do bot — somente MP3 128 kbps)\n"
 
     quals = ["MP3 128"]
-    if is_prem or uid == OWNER_ID:
+    if has_arl or uid == OWNER_ID:
         quals.insert(0, "MP3 320")
     if can_flac:
         quals.insert(0, "FLAC")
     qual_line = "🎧 Qualidades disponíveis: " + " · ".join(quals)
 
     text = (
-        f"🎵 **Deezer Bot — v13 (DM-only PRO)**\n\n"
+        f"🎵 **Deezer Bot — v14 (DM-only PRO)**\n\n"
         f"{arl_tag}{qual_line}\n\n"
         f"🔍 Digite o nome de uma música, álbum ou artista\n"
-        f"ou cole um link do Deezer (faixa, álbum ou artista)."
+        f"ou cole um link do Deezer (faixa, álbum ou artista — links curtos OK).\n"
+        f"🚫 _Links de playlist não são aceitos._"
     )
     if event:
         try:
