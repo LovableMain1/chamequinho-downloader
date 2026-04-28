@@ -202,6 +202,7 @@ class AdminConfig:
     Persiste configurações do admin:
     - user_quality:     {uid_str: "9"|"3"|"1"}  → qualidade máxima permitida
     - arl_info_visible: {uid_str: bool}          → se usuário vê infos ARL
+    - groups_allowed:   bool                     → permitir bot ser adicionado a grupos
     """
     def __init__(self, path: Path):
         self.path = path
@@ -209,6 +210,7 @@ class AdminConfig:
         self._data: dict = {
             "user_quality": {},
             "arl_info_visible": {},
+            "groups_allowed": False,  # padrão: bloqueado
         }
         self._load()
 
@@ -216,8 +218,12 @@ class AdminConfig:
         if self.path.exists():
             try:
                 d = json.loads(self.path.read_text(encoding="utf-8"))
-                for k in self._data:
+                # Mapas
+                for k in ("user_quality", "arl_info_visible"):
                     self._data[k] = d.get(k, {})
+                # Booleanos / escalares
+                if "groups_allowed" in d:
+                    self._data["groups_allowed"] = bool(d["groups_allowed"])
             except Exception:
                 pass
 
