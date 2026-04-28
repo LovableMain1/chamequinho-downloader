@@ -1732,13 +1732,14 @@ async def h_ow_stats(event):
     await event.answer()
     await event.edit(
         f"📊 **Estatísticas**\n\n"
-        f"🟢 Pool Deezer    : {pool.count()}\n"
-        f"🟢 ARLs pessoais  : {user_arl.count()}\n"
-        f"👥 Usuários       : {users_reg.count()}\n"
-        f"⬇️ Downloads ativ.: {len(_dl_tasks)}\n"
-        f"🚫 Bloqueados     : {len(rate.blocked_list())}\n"
-        f"⚙️ Workers DL/UP  : {MAX_GLOBAL_DL}/{MAX_SEND_PARA}\n"
-        f"📁 Base dir       : `{BASE_DIR}`",
+        f"🟢 Pool Deezer     : {pool.count()}\n"
+        f"🟢 ARLs pessoais   : {user_arl.count()}\n"
+        f"💎 Premiums detect.: {sum(1 for u in user_arl._c if user_arl.is_premium(u))}\n"
+        f"🎼 FLAC liberados  : {len(flac_wl.list())}\n"
+        f"👥 Usuários reg.   : {users_reg.count()}\n"
+        f"⬇️ Downloads ativos: {len(_dl_tasks)}\n"
+        f"🚫 Bloqueados      : {len(rate.blocked_list())}\n"
+        f"⚙️ Workers DL/UP   : {MAX_GLOBAL_DL}/{MAX_SEND_PARA}",
         buttons=owner_panel_btns(), parse_mode="md")
 
 @bot.on(events.CallbackQuery(data=b"ow:unlimit"))
