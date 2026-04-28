@@ -1006,17 +1006,17 @@ async def pager_btns(uid: int) -> list:
     rows.append(ctx)
     return rows
 
-def dl_format_btns(uid: int, tipo: str, has_premium: bool) -> list:
+def dl_format_btns(uid: int, tipo: str, has_arl: bool) -> list:
     """
     Botões de seleção de formato — regras DM-only:
-      • Todos os usuários podem baixar em MP3 128 kbps.
-      • Usuário com ARL **premium** própria → MP3 320 kbps + álbuns.
+      • Todos os usuários podem baixar em MP3 128 kbps (faixa única).
+      • Usuário com **qualquer ARL própria** configurada → MP3 320 kbps + álbuns.
       • FLAC → apenas usuários liberados pelo OWNER (whitelist).
       • OWNER tem todas as qualidades + ZIP de álbuns/playlists.
     Callback: dlstart:{bitrate}:{mode}:{uid}
       bitrate: 9=FLAC, 3=MP3_320, 1=MP3_128
       mode:    f=arquivos individuais, z=ZIP
-    Para usuários comuns: álbuns/playlists só em ZIP quando premium.
+    Para usuários sem ARL: álbuns/playlists são bloqueados (apenas faixas únicas).
     """
     is_multi = tipo in ("album", "playlist")
     rows = []
