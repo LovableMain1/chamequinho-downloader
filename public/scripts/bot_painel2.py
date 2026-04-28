@@ -1873,186 +1873,71 @@ async def h_arl_del(event):
         buttons=[[Button.inline("🏠 Menu", b"mn")]])
 
 # ═══════════════════════════════════════════════════════════════
-# OWNER — Grupos / Tópicos / Permissões  (NOVO)
+# OWNER — FLAC Whitelist  (DM-only)
 # ═══════════════════════════════════════════════════════════════
 def _is_owner(event) -> bool:
     return event.sender_id == OWNER_ID
 
-def _groups_panel_text() -> str:
-    gs = groups_cfg.list_groups()
-    if not gs:
-        return "👥 **Grupos autorizados**\n\n_Nenhum grupo cadastrado._"
-    lines = ["👥 **Grupos autorizados**\n"]
-    for cid, g in gs.items():
-        title = g.get("title") or "(sem título)"
-        tp    = g.get("topic_id")
-        lines.append(
-            f"• `{cid}` — {title}\n"
-            f"  📌 Tópico: " + (f"`{tp}`" if tp else "_qualquer_"))
+def _flac_panel_text() -> str:
+    lst = flac_wl.list()
+    if not lst:
+        return ("🎼 **FLAC — Whitelist**\n\n"
+                "_Nenhum usuário liberado para FLAC._\n\n"
+                "👤 Apenas usuários nesta lista podem baixar em FLAC.\n"
+                "Demais usuários podem baixar em MP3 320 (com ARL premium "
+                "própria) ou MP3 128 (todos).")
+    lines = ["🎼 **FLAC — Whitelist**\n",
+             f"👥 {len(lst)} usuário(s) liberado(s):\n"]
+    for u in lst:
+        info = users_reg.get_all().get(str(u), {})
+        nick = info.get("username") or info.get("first_name") or "—"
+        lines.append(f"• `{u}` — {nick}")
     return "\n".join(lines)
 
-def _groups_panel_btns() -> list:
+def _flac_panel_btns() -> list:
     return [
-        [Button.inline("➕ Adicionar grupo (ID)", b"og:add"),
-         Button.inline("➖ Remover grupo",       b"og:rm")],
-        [Button.inline("📌 Definir tópico",      b"og:settopic")],
-        [Button.inline("🔄 Atualizar",           b"ow:groups"),
-         Button.inline("🏠 Menu",                b"mn")],
-    ]
-
-def _perms_panel_text() -> str:
-    ex = perms.list("explore")
-    sr = perms.list("search")
-    return (
-        "🛡 **Permissões**\n\n"
-        f"🌐 Explorar ({len(ex)}): " +
-        (", ".join(f"`{u}`" for u in ex) if ex else "_ninguém_") +
-        "\n\n"
-        f"🔎 Busca por nome ({len(sr)}): " +
-        (", ".join(f"`{u}`" for u in sr) if sr else "_ninguém_")
-    )
-
-def _perms_panel_btns() -> list:
-    return [
-        [Button.inline("➕ Liberar Explorar", b"op:exp_add"),
-         Button.inline("➖ Remover Explorar", b"op:exp_rm")],
-        [Button.inline("➕ Liberar Busca",    b"op:sr_add"),
-         Button.inline("➖ Remover Busca",    b"op:sr_rm")],
-        [Button.inline("🔄 Atualizar", b"ow:perms"),
+        [Button.inline("➕ Liberar usuário", b"ow:flac:add"),
+         Button.inline("➖ Remover usuário", b"ow:flac:rm")],
+        [Button.inline("🔄 Atualizar", b"ow:flac"),
          Button.inline("🏠 Menu",      b"mn")],
     ]
 
-@bot.on(events.CallbackQuery(data=b"ow:groups"))
-async def h_ow_groups(event):
+@bot.on(events.CallbackQuery(data=b"ow:flac"))
+async def h_ow_flac(event):
     if not _is_owner(event):
         return await event.answer("🔒", alert=True)
     await event.answer()
     try:
-        await event.edit(_groups_panel_text(),
-                         buttons=_groups_panel_btns(), parse_mode="md")
+        await event.edit(_flac_panel_text(),
+                         buttons=_flac_panel_btns(), parse_mode="md")
     except Exception:
-        await bot.send_message(event.sender_id, _groups_panel_text(),
-                               buttons=_groups_panel_btns(), parse_mode="md")
+        await bot.send_message(event.sender_id, _flac_panel_text(),
+                               buttons=_flac_panel_btns(), parse_mode="md")
 
-@bot.on(events.CallbackQuery(data=b"ow:perms"))
-async def h_ow_perms(event):
+@bot.on(events.CallbackQuery(data=b"ow:flac:add"))
+async def h_ow_flac_add(event):
     if not _is_owner(event):
         return await event.answer("🔒", alert=True)
     await event.answer()
-    try:
-        await event.edit(_perms_panel_text(),
-                         buttons=_perms_panel_btns(), parse_mode="md")
-    except Exception:
-        await bot.send_message(event.sender_id, _perms_panel_text(),
-                               buttons=_perms_panel_btns(), parse_mode="md")
-
-_OW_STEPS = {
-    "og:add":      ("wait_group_add",  "✏️ Envie o **ID do grupo** (ex.: `-1001234567890`)."),
-    "og:rm":       ("wait_group_rm",   "✏️ Envie o **ID do grupo** a remover."),
-    "og:settopic": ("wait_set_topic",  "✏️ Encaminhe uma **mensagem do tópico** OU envie `chat_id topic_id`."),
-    "op:exp_add":  ("wait_exp_add",    "✏️ Envie o **ID do usuário** para liberar Explorar."),
-    "op:exp_rm":   ("wait_exp_rm",     "✏️ Envie o **ID do usuário** para remover Explorar."),
-    "op:sr_add":   ("wait_sr_add",     "✏️ Envie o **ID do usuário** para liberar Busca."),
-    "op:sr_rm":    ("wait_sr_rm",      "✏️ Envie o **ID do usuário** para remover Busca."),
-}
-
-@bot.on(events.CallbackQuery(pattern=rb"^(og:add|og:rm|og:settopic|op:exp_add|op:exp_rm|op:sr_add|op:sr_rm)$"))
-async def h_ow_steps(event):
-    if not _is_owner(event):
-        return await event.answer("🔒", alert=True)
-    key = event.data.decode()
-    step, prompt = _OW_STEPS[key]
-    nav(event.sender_id).step = step
-    await event.answer()
-    await event.respond(prompt, parse_mode="md",
-        buttons=[[Button.inline("❌ Cancelar", b"mn")]])
-
-@bot.on(events.NewMessage(pattern=r"^/addgroup(?:\s+(-?\d+))?$"))
-async def h_cmd_addgroup(event):
-    if not _is_owner(event):
-        return
-    arg = event.pattern_match.group(1)
-    chat_id = int(arg) if arg else _event_chat_id(event)
-    title = ""
-    try:
-        ent = await event.get_chat()
-        title = getattr(ent, "title", "") or ""
-    except Exception:
-        pass
-    groups_cfg.add_group(chat_id, title)
-    await event.respond(f"✅ Grupo `{chat_id}` autorizado.", parse_mode="md")
-
-@bot.on(events.NewMessage(pattern=r"^/rmgroup\s+(-?\d+)$"))
-async def h_cmd_rmgroup(event):
-    if not _is_owner(event):
-        return
-    chat_id = int(event.pattern_match.group(1))
-    ok = groups_cfg.remove_group(chat_id)
-    await event.respond("✅ Removido." if ok else "ℹ️ Não estava na lista.")
-
-@bot.on(events.NewMessage(pattern=r"^/setopic(?:\s+(-?\d+)\s+(\d+))?$"))
-async def h_cmd_setopic(event):
-    """
-    /setopic                       → usa o tópico atual da mensagem
-    /setopic <chat_id> <topic_id>  → define manualmente
-    Encaminhar mensagem do tópico após clicar em 'Definir tópico' também funciona.
-    """
-    if not _is_owner(event):
-        return
-    g1 = event.pattern_match.group(1)
-    g2 = event.pattern_match.group(2)
-    if g1 and g2:
-        chat_id = int(g1); topic_id = int(g2)
-        groups_cfg.add_group(chat_id)
-        groups_cfg.set_topic(chat_id, topic_id)
-        return await event.respond(
-            f"✅ Tópico `{topic_id}` configurado em `{chat_id}`.",
-            parse_mode="md")
-    chat_id  = _event_chat_id(event)
-    topic_id = _event_topic_id(event)
-    if not topic_id:
-        return await event.respond(
-            "ℹ️ Envie /setopic **dentro do tópico** desejado, "
-            "ou use `/setopic <chat_id> <topic_id>`.",
-            parse_mode="md")
-    groups_cfg.add_group(chat_id)
-    groups_cfg.set_topic(chat_id, topic_id)
-    await event.respond(
-        f"✅ Tópico `{topic_id}` definido para este grupo.",
+    nav(event.sender_id).step = "wait_flac_add"
+    await event.edit(
+        "🎼 **Liberar FLAC**\n\n"
+        "Envie o **ID do usuário** (ou @username, ou encaminhe uma "
+        "mensagem dele):",
+        buttons=[[Button.inline("❌ Cancelar", b"ow:flac")]],
         parse_mode="md")
 
-@bot.on(events.NewMessage(func=lambda e: e.forward is not None))
-async def h_forwarded_topic(event):
+@bot.on(events.CallbackQuery(data=b"ow:flac:rm"))
+async def h_ow_flac_rm(event):
     if not _is_owner(event):
-        return
-    if nav(event.sender_id).step != "wait_set_topic":
-        return
-    fwd = event.forward
-    src_chat  = None
-    src_topic = _event_topic_id(event)
-    try:
-        from_id = getattr(fwd, "from_id", None) or getattr(fwd, "chat_id", None)
-        if hasattr(from_id, "channel_id"):
-            src_chat = int(f"-100{from_id.channel_id}")
-        elif hasattr(from_id, "chat_id"):
-            src_chat = -int(from_id.chat_id)
-        elif isinstance(from_id, int):
-            src_chat = from_id
-    except Exception:
-        pass
-    if src_chat is None or src_topic is None:
-        return await event.respond(
-            "❌ Não consegui extrair tópico desta mensagem.\n"
-            "Use `/setopic <chat_id> <topic_id>` manualmente.",
-            parse_mode="md")
-    groups_cfg.add_group(src_chat)
-    groups_cfg.set_topic(src_chat, src_topic)
-    nav(event.sender_id).step = "idle"
-    await event.respond(
-        f"✅ Configurado: chat `{src_chat}` / tópico `{src_topic}`.",
-        parse_mode="md",
-        buttons=[[Button.inline("👥 Grupos", b"ow:groups"),
-                  Button.inline("🏠 Menu",   b"mn")]])
+        return await event.answer("🔒", alert=True)
+    await event.answer()
+    nav(event.sender_id).step = "wait_flac_rm"
+    await event.edit(
+        "🎼 **Remover FLAC**\n\nEnvie o **ID do usuário** a remover:",
+        buttons=[[Button.inline("❌ Cancelar", b"ow:flac")]],
+        parse_mode="md")
+
 
 # ─── Mensagens de texto / links ───────────────────────────────
 @bot.on(events.NewMessage())
