@@ -258,6 +258,15 @@ class AdminConfig:
             self._data["arl_info_visible"][str(uid)] = visible
             self._save()
 
+    # ── Permissão para grupos (bot ser adicionado) ───────────
+    def groups_allowed(self) -> bool:
+        return bool(self._data.get("groups_allowed", False))
+
+    def set_groups_allowed(self, allowed: bool):
+        with self._lock:
+            self._data["groups_allowed"] = bool(allowed)
+            self._save()
+
 admin_cfg = AdminConfig(ADMIN_CFG_FILE)
 
 # ═══════════════════════════════════════════════════════════════
