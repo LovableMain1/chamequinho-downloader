@@ -1198,24 +1198,39 @@ async def _edit_card(card_msg, caption: str, btns: list | None):
 
 async def send_menu(uid: int, event=None):
     nav(uid).clear()
-    arl_d   = user_arl.get(uid)
-    arl_tag = (f"🔑 ARL: ✅ _{arl_d.get('name', 'Configurada')}_\n"
-               if arl_d else "🔑 ARL: ❌ Não configurada\n")
+    arl_d  = user_arl.get(uid)
+    is_prem = user_arl.is_premium(uid)
+    can_flac = flac_wl.can_flac(uid)
+
+    if arl_d:
+        plan = arl_d.get("plan", "—") or "—"
+        if is_prem:
+            arl_tag = f"🔑 ARL: ✅ _{arl_d.get('name','Configurada')}_ — 💎 {plan}\n"
+        else:
+            arl_tag = f"🔑 ARL: ✅ _{arl_d.get('name','Configurada')}_ — 🆓 {plan}\n"
+    else:
+        arl_tag = "🔑 ARL: ❌ Não configurada (somente MP3 128 kbps)\n"
+
+    quals = ["MP3 128"]
+    if is_prem or uid == OWNER_ID:
+        quals.insert(0, "MP3 320")
+    if can_flac:
+        quals.insert(0, "FLAC")
+    qual_line = "🎧 Qualidades disponíveis: " + " · ".join(quals)
+
     text = (
-        f"🎵 **Deezer Bot — v12**\n\n"
-        f"{arl_tag}\n"
+        f"🎵 **Deezer Bot — v13 (DM-only PRO)**\n\n"
+        f"{arl_tag}{qual_line}\n\n"
         f"🔍 Digite o nome de uma música, álbum ou artista\n"
-        f"ou cole um link do Deezer."
+        f"ou cole um link do Deezer (faixa, álbum ou artista)."
     )
     if event:
         try:
             await event.delete()
         except Exception:
             pass
-    chat, topic = _target_for(uid)
-    extra = {"reply_to": topic} if topic else {}
     await bot.send_message(
-        chat, text, buttons=main_menu_btns(uid), parse_mode="md", **extra)
+        uid, text, buttons=main_menu_btns(uid), parse_mode="md")
 
 async def _register_user(event):
     try:
