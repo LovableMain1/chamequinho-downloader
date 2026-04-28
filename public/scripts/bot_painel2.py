@@ -1108,6 +1108,7 @@ def artist_btns(aid: str) -> list:
     ]
 
 def owner_panel_btns() -> list:
+    g_lbl = "🟢 Grupos: ON" if admin_cfg.groups_allowed() else "🔴 Grupos: OFF"
     return [
         [Button.inline("➕ Adicionar ARL",    b"ow:add"),
          Button.inline("🗑 Remover ARL",      b"ow:listrm")],
@@ -1116,7 +1117,8 @@ def owner_panel_btns() -> list:
          Button.inline("📊 Estatísticas",      b"ow:stats")],
         [Button.inline("🎼 Liberar FLAC",       b"ow:flac"),
          Button.inline("🎚 Qualidade Usuários", b"ow:quality")],
-        [Button.inline("👁 ARL Visível",        b"ow:arlvis")],
+        [Button.inline("👁 ARL Visível",        b"ow:arlvis"),
+         Button.inline(g_lbl,                   b"ow:grp")],
         [Button.inline("🏠 Menu", b"mn")],
     ]
 
