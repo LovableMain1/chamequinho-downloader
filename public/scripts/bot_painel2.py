@@ -2121,12 +2121,7 @@ async def h_text(event):
         asyncio.create_task(_handle_dz_link(msg, uid, tipo, iid))
         return
 
-    # Busca direta por termo — apenas autorizados
-    if not perms.can_search(uid):
-        return await event.respond(
-            "🔒 **Busca por nome desativada para você.**\n\n"
-            "Envie diretamente um link do Deezer (álbum, faixa ou artista).",
-            parse_mode="md")
+    # Busca por nome — liberada para todos em DM
     st.query = text
     await event.respond(
         f"🔍 Buscar: **{text}**\n\nEscolha o tipo:",
