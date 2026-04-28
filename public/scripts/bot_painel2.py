@@ -1493,26 +1493,27 @@ async def h_dl_card(event):
 
     p           = st.pending
     tipo        = p["type"]
-    has_premium = user_arl.is_premium(uid) or uid == OWNER_ID
+    # "has_arl" agora = qualquer ARL própria do usuário (libera 320 + álbuns)
+    has_arl     = (user_arl.get(uid) is not None) or uid == OWNER_ID
     ico         = "💿" if tipo != "track" else "🎵"
 
     # Atualiza caption do card existente (preserva a foto)
     can_flac = flac_wl.can_flac(uid)
-    if has_premium and can_flac:
-        premium_note = "\n✅ _Premium + FLAC liberado — todas as qualidades disponíveis_"
-    elif has_premium:
-        premium_note = ("\n✅ _ARL premium detectada — MP3 320 disponível_"
+    if has_arl and can_flac:
+        premium_note = "\n✅ _ARL configurada + FLAC liberado — todas as qualidades disponíveis_"
+    elif has_arl:
+        premium_note = ("\n✅ _ARL própria detectada — MP3 320 + álbuns liberados_"
                         "\n🎼 _FLAC só para usuários liberados pelo dono_")
     elif can_flac:
-        premium_note = "\n🎼 _FLAC liberado pelo dono — MP3 320 requer ARL premium própria_"
+        premium_note = "\n🎼 _FLAC liberado pelo dono — MP3 320 requer sua própria ARL_"
     else:
-        premium_note = ("\n🎶 _Disponível: MP3 128 kbps_"
-                        "\n⚠️ _Configure sua ARL premium para MP3 320 e álbuns_")
+        premium_note = ("\n🎶 _Disponível: MP3 128 kbps (faixas únicas)_"
+                        "\n⚠️ _Adicione sua ARL para MP3 320 e baixar álbuns inteiros_")
     caption = (
         f"{st.card_caption}\n\n"
         f"📦 **Escolha o formato:**{premium_note}"
     )
-    btns = dl_format_btns(uid, tipo, has_premium)
+    btns = dl_format_btns(uid, tipo, has_arl)
 
     if st.card_msg:
         await _edit_card(st.card_msg, caption, btns)
