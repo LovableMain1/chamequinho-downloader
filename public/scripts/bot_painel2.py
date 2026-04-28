@@ -1022,7 +1022,7 @@ def dl_format_btns(uid: int, tipo: str, has_arl: bool) -> list:
     rows = []
 
     can_flac    = flac_wl.can_flac(uid)
-    can_320     = has_premium or uid == OWNER_ID
+    can_320     = has_arl or uid == OWNER_ID
     # Admin pode restringir qualidade máxima manualmente
     max_q = admin_cfg.get_user_quality(uid)  # "9", "3", "1" ou None
 
