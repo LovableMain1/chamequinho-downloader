@@ -1,10 +1,12 @@
 #!/usr/bin/env python3
 """
-Deezer Bot — v13 (DM-only PRO) — Silva Edition
-• Apenas DM (sem grupos / tópicos)
+Deezer Bot — v14 (DM-only PRO) — Silva Edition
+• Apenas DM (sem grupos / tópicos) — bot sai sozinho se for adicionado em grupo
+• Pool de ARLs do .env: qualquer usuário usa o bot sem precisar de ARL própria
 • 128 kbps liberado para todos
-• 320 kbps + álbuns só para usuários com ARL premium própria
+• 320 kbps + álbuns liberados para qualquer usuário com ARL própria
 • FLAC apenas para usuários whitelisted pelo OWNER
+• Aceita links curtos do Deezer e links diretos com ID; rejeita playlists
 • Card único atualizado in-place (foto preservada)
 """
 
@@ -202,6 +204,7 @@ class AdminConfig:
     Persiste configurações do admin:
     - user_quality:     {uid_str: "9"|"3"|"1"}  → qualidade máxima permitida
     - arl_info_visible: {uid_str: bool}          → se usuário vê infos ARL
+    - groups_allowed:   bool                     → permitir bot ser adicionado a grupos
     """
     def __init__(self, path: Path):
         self.path = path
@@ -209,6 +212,7 @@ class AdminConfig:
         self._data: dict = {
             "user_quality": {},
             "arl_info_visible": {},
+            "groups_allowed": False,  # padrão: bloqueado
         }
         self._load()
 
@@ -216,8 +220,12 @@ class AdminConfig:
         if self.path.exists():
             try:
                 d = json.loads(self.path.read_text(encoding="utf-8"))
-                for k in self._data:
+                # Mapas
+                for k in ("user_quality", "arl_info_visible"):
                     self._data[k] = d.get(k, {})
+                # Booleanos / escalares
+                if "groups_allowed" in d:
+                    self._data["groups_allowed"] = bool(d["groups_allowed"])
             except Exception:
                 pass
 
@@ -250,6 +258,15 @@ class AdminConfig:
     def set_arl_info_visible(self, uid: int, visible: bool):
         with self._lock:
             self._data["arl_info_visible"][str(uid)] = visible
+            self._save()
+
+    # ── Permissão para grupos (bot ser adicionado) ───────────
+    def groups_allowed(self) -> bool:
+        return bool(self._data.get("groups_allowed", False))
+
+    def set_groups_allowed(self, allowed: bool):
+        with self._lock:
+            self._data["groups_allowed"] = bool(allowed)
             self._save()
 
 admin_cfg = AdminConfig(ADMIN_CFG_FILE)
@@ -991,23 +1008,23 @@ async def pager_btns(uid: int) -> list:
     rows.append(ctx)
     return rows
 
-def dl_format_btns(uid: int, tipo: str, has_premium: bool) -> list:
+def dl_format_btns(uid: int, tipo: str, has_arl: bool) -> list:
     """
     Botões de seleção de formato — regras DM-only:
-      • Todos os usuários podem baixar em MP3 128 kbps.
-      • Usuário com ARL **premium** própria → MP3 320 kbps + álbuns.
+      • Todos os usuários podem baixar em MP3 128 kbps (faixa única).
+      • Usuário com **qualquer ARL própria** configurada → MP3 320 kbps + álbuns.
       • FLAC → apenas usuários liberados pelo OWNER (whitelist).
       • OWNER tem todas as qualidades + ZIP de álbuns/playlists.
     Callback: dlstart:{bitrate}:{mode}:{uid}
       bitrate: 9=FLAC, 3=MP3_320, 1=MP3_128
       mode:    f=arquivos individuais, z=ZIP
-    Para usuários comuns: álbuns/playlists só em ZIP quando premium.
+    Para usuários sem ARL: álbuns/playlists são bloqueados (apenas faixas únicas).
     """
     is_multi = tipo in ("album", "playlist")
     rows = []
 
     can_flac    = flac_wl.can_flac(uid)
-    can_320     = has_premium or uid == OWNER_ID
+    can_320     = has_arl or uid == OWNER_ID
     # Admin pode restringir qualidade máxima manualmente
     max_q = admin_cfg.get_user_quality(uid)  # "9", "3", "1" ou None
 
@@ -1093,6 +1110,7 @@ def artist_btns(aid: str) -> list:
     ]
 
 def owner_panel_btns() -> list:
+    g_lbl = "🟢 Grupos: ON" if admin_cfg.groups_allowed() else "🔴 Grupos: OFF"
     return [
         [Button.inline("➕ Adicionar ARL",    b"ow:add"),
          Button.inline("🗑 Remover ARL",      b"ow:listrm")],
@@ -1101,7 +1119,8 @@ def owner_panel_btns() -> list:
          Button.inline("📊 Estatísticas",      b"ow:stats")],
         [Button.inline("🎼 Liberar FLAC",       b"ow:flac"),
          Button.inline("🎚 Qualidade Usuários", b"ow:quality")],
-        [Button.inline("👁 ARL Visível",        b"ow:arlvis")],
+        [Button.inline("👁 ARL Visível",        b"ow:arlvis"),
+         Button.inline(g_lbl,                   b"ow:grp")],
         [Button.inline("🏠 Menu", b"mn")],
     ]
 
@@ -1200,6 +1219,7 @@ async def send_menu(uid: int, event=None):
     nav(uid).clear()
     arl_d  = user_arl.get(uid)
     is_prem = user_arl.is_premium(uid)
+    has_arl = arl_d is not None
     can_flac = flac_wl.can_flac(uid)
 
     if arl_d:
@@ -1209,20 +1229,21 @@ async def send_menu(uid: int, event=None):
         else:
             arl_tag = f"🔑 ARL: ✅ _{arl_d.get('name','Configurada')}_ — 🆓 {plan}\n"
     else:
-        arl_tag = "🔑 ARL: ❌ Não configurada (somente MP3 128 kbps)\n"
+        arl_tag = "🔑 ARL: ❌ Não configurada (usando pool do bot — somente MP3 128 kbps)\n"
 
     quals = ["MP3 128"]
-    if is_prem or uid == OWNER_ID:
+    if has_arl or uid == OWNER_ID:
         quals.insert(0, "MP3 320")
     if can_flac:
         quals.insert(0, "FLAC")
     qual_line = "🎧 Qualidades disponíveis: " + " · ".join(quals)
 
     text = (
-        f"🎵 **Deezer Bot — v13 (DM-only PRO)**\n\n"
+        f"🎵 **Deezer Bot — v14 (DM-only PRO)**\n\n"
         f"{arl_tag}{qual_line}\n\n"
         f"🔍 Digite o nome de uma música, álbum ou artista\n"
-        f"ou cole um link do Deezer (faixa, álbum ou artista)."
+        f"ou cole um link do Deezer (faixa, álbum ou artista — links curtos OK).\n"
+        f"🚫 _Links de playlist não são aceitos._"
     )
     if event:
         try:
@@ -1478,26 +1499,27 @@ async def h_dl_card(event):
 
     p           = st.pending
     tipo        = p["type"]
-    has_premium = user_arl.is_premium(uid) or uid == OWNER_ID
+    # "has_arl" agora = qualquer ARL própria do usuário (libera 320 + álbuns)
+    has_arl     = (user_arl.get(uid) is not None) or uid == OWNER_ID
     ico         = "💿" if tipo != "track" else "🎵"
 
     # Atualiza caption do card existente (preserva a foto)
     can_flac = flac_wl.can_flac(uid)
-    if has_premium and can_flac:
-        premium_note = "\n✅ _Premium + FLAC liberado — todas as qualidades disponíveis_"
-    elif has_premium:
-        premium_note = ("\n✅ _ARL premium detectada — MP3 320 disponível_"
+    if has_arl and can_flac:
+        premium_note = "\n✅ _ARL configurada + FLAC liberado — todas as qualidades disponíveis_"
+    elif has_arl:
+        premium_note = ("\n✅ _ARL própria detectada — MP3 320 + álbuns liberados_"
                         "\n🎼 _FLAC só para usuários liberados pelo dono_")
     elif can_flac:
-        premium_note = "\n🎼 _FLAC liberado pelo dono — MP3 320 requer ARL premium própria_"
+        premium_note = "\n🎼 _FLAC liberado pelo dono — MP3 320 requer sua própria ARL_"
     else:
-        premium_note = ("\n🎶 _Disponível: MP3 128 kbps_"
-                        "\n⚠️ _Configure sua ARL premium para MP3 320 e álbuns_")
+        premium_note = ("\n🎶 _Disponível: MP3 128 kbps (faixas únicas)_"
+                        "\n⚠️ _Adicione sua ARL para MP3 320 e baixar álbuns inteiros_")
     caption = (
         f"{st.card_caption}\n\n"
         f"📦 **Escolha o formato:**{premium_note}"
     )
-    btns = dl_format_btns(uid, tipo, has_premium)
+    btns = dl_format_btns(uid, tipo, has_arl)
 
     if st.card_msg:
         await _edit_card(st.card_msg, caption, btns)
@@ -1677,6 +1699,67 @@ async def h_ow_panel(event):
         f"⚙️ **Pool Deezer**\n\n{pool.status()}\n\n"
         f"👥 ARLs pessoais: {user_arl.count()}",
         buttons=owner_panel_btns(), parse_mode="md")
+
+@bot.on(events.CallbackQuery(data=b"ow:grp"))
+@_owner
+async def h_ow_grp(event):
+    """Liga/desliga a permissão do bot ser adicionado a grupos.
+    Quando OFF, o bot sai automaticamente de qualquer grupo onde for adicionado."""
+    new_state = not admin_cfg.groups_allowed()
+    admin_cfg.set_groups_allowed(new_state)
+    if not new_state:
+        try:
+            left = 0
+            async for d in bot.iter_dialogs():
+                if d.is_group or d.is_channel:
+                    try:
+                        await bot.delete_dialog(d.entity)
+                        left += 1
+                    except Exception:
+                        pass
+            log.info(f"🚪 ow:grp OFF — saiu de {left} grupo(s)/canal(is).")
+        except Exception as e:
+            log.warning(f"ow:grp leave-all falhou: {e}")
+    await event.answer(
+        "✅ Grupos LIBERADOS — o bot pode ser adicionado a grupos."
+        if new_state else
+        "🚫 Grupos BLOQUEADOS — bot sairá automaticamente de qualquer grupo.",
+        alert=True)
+    try:
+        await event.edit(
+            f"⚙️ **Pool Deezer**\n\n{pool.status()}\n\n"
+            f"👥 ARLs pessoais: {user_arl.count()}",
+            buttons=owner_panel_btns(), parse_mode="md")
+    except Exception:
+        pass
+
+@bot.on(events.ChatAction)
+async def h_chat_action(event):
+    """Sai automaticamente de grupos/canais quando 'groups_allowed' está OFF."""
+    try:
+        if admin_cfg.groups_allowed():
+            return
+        chat = await event.get_chat()
+        is_group = getattr(chat, "megagroup", False) or \
+                   getattr(chat, "broadcast", False) or \
+                   bool(getattr(chat, "title", None))
+        if not is_group:
+            return
+        try:
+            await bot.send_message(
+                chat.id,
+                "🚫 Este bot funciona **apenas em DM (mensagem direta)**.\n"
+                "Saindo do grupo…",
+                parse_mode="md")
+        except Exception:
+            pass
+        try:
+            await bot.delete_dialog(chat)
+            log.info(f"🚪 Saí de {getattr(chat,'title','?')} ({chat.id})")
+        except Exception as e:
+            log.warning(f"Falha ao sair de {chat.id}: {e}")
+    except Exception as e:
+        log.debug(f"h_chat_action erro: {e}")
 
 @bot.on(events.CallbackQuery(data=b"ow:add"))
 @_owner
@@ -2840,9 +2923,10 @@ async def main():
     await bot.start(bot_token=BOT_TOKEN)
     log.info(
         f"\n{'═'*52}\n"
-        f"  🎵 Deezer Bot — v13 DM-only PRO (Silva Edition)\n"
+        f"  🎵 Deezer Bot — v14 DM-only PRO (Silva Edition)\n"
         f"  💬 Modo: APENAS DMs (sem grupos)\n"
-        f"  🎶 Todos: MP3 128 | 💎 Premium: + MP3 320 | 🎼 FLAC: whitelist\n"
+        f"  🎶 Todos: MP3 128 | 🔑 c/ ARL: + MP3 320 | 🎼 FLAC: whitelist\n"
+        f"  🚪 Grupos        : {'PERMITIDOS' if admin_cfg.groups_allowed() else 'BLOQUEADOS (auto-leave)'}\n"
         f"  🟢 Pool Deezer   : {pool.count()} sessão(ões)\n"
         f"  🟢 ARLs pessoais : {user_arl.count()}\n"
         f"  🎼 FLAC liberados: {len(flac_wl.list())}\n"
