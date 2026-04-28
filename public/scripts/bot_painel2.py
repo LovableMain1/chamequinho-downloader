@@ -1,10 +1,12 @@
 #!/usr/bin/env python3
 """
-Deezer Bot — v13 (DM-only PRO) — Silva Edition
-• Apenas DM (sem grupos / tópicos)
+Deezer Bot — v14 (DM-only PRO) — Silva Edition
+• Apenas DM (sem grupos / tópicos) — bot sai sozinho se for adicionado em grupo
+• Pool de ARLs do .env: qualquer usuário usa o bot sem precisar de ARL própria
 • 128 kbps liberado para todos
-• 320 kbps + álbuns só para usuários com ARL premium própria
+• 320 kbps + álbuns liberados para qualquer usuário com ARL própria
 • FLAC apenas para usuários whitelisted pelo OWNER
+• Aceita links curtos do Deezer e links diretos com ID; rejeita playlists
 • Card único atualizado in-place (foto preservada)
 """
 
