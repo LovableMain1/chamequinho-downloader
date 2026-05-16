@@ -1037,7 +1037,7 @@ function renderSearch(data){
   html+=`<div class="sr-panel${_srTab==='albums'?'':' sr-hidden'}" id="srp-albums">`;
   if(albums.length){
     html+=`<div class="cards-grid">`;
-    albums.forEach(al=>{const nt=al.nb_tracks||al.tracks_n||al.tracks||0;const extra=[al.year||'',nt?nt+' faixas':''].filter(Boolean).join(' · ');html+=`<div class="card" data-album-id="${al.id}"><div class="card-img-wrap"><img class="card-img" src="${esc(al.cover_xl||al.cover)}" onerror="imgErr(this)" loading="lazy"/><button class="card-play">▶</button></div><div class="card-badge cb-album">Álbum</div><div class="card-title">${esc(al.title)}</div><div class="card-sub"><span class="clickable" data-artist-id="${al.artist_id||''}">${esc(al.artist)}</span>${extra?' · '+extra:''}</div></div>`});
+    albums.forEach(al=>{const nt=al.nb_tracks||al.tracks_n||al.tracks||0;const extra=[al.year||'',nt?nt+' faixas':''].filter(Boolean).join(' · ');html+=`<div class="card" data-album-id="${al.id}"><img class="card-img" src="${esc(al.cover_xl||al.cover)}" onerror="imgErr(this)" loading="lazy"/><button class="card-play">▶</button><div class="card-badge cb-album">Álbum</div><div class="card-title">${esc(al.title)}</div><div class="card-sub"><span class="clickable" data-artist-id="${al.artist_id||''}">${esc(al.artist)}</span>${extra?' · '+extra:''}</div></div>`});
     html+=`</div>`;
   }
   html+=`</div>`;
