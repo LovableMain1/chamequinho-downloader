@@ -594,6 +594,167 @@ main{background:linear-gradient(180deg,#1f1f1f 0%,#121212 240px)!important}
   .ap-avatar{width:68px;height:68px}
   .ap-hero{min-height:230px}
 }
+
+/* ══════════════════════════════════════════════════════════
+   POLISH v3 — cards uniformes, anti-cópia, player premium
+═══════════════════════════════════════════════════════════ */
+
+/* Anti-cópia / anti-seleção em toda a interface (inputs continuam editáveis) */
+html,body,.app,main,.content,.card,.chi,.ti,.tl-item,.pq-item,
+.modal,.player-bar,.player-drawer,.mini-bar,.mob-nav,
+.ap-info,.modal-meta,.pb-info,.pd-info,.mini-info,
+.card-title,.card-sub,.chi-title,.chi-artist,.ti-title,.ti-sub,
+.modal-title,.modal-artist,.modal-info,.pb-title,.pb-artist,.pb-album,
+.pd-title,.pd-artist,.pd-album-lnk,.mini-title,.mini-sub,
+.sec-title,.greeting,.greeting-sub,.aptab,.sr-tab,.ttab,.nav-btn,
+.mob-nav-btn,button{
+  -webkit-user-select:none!important;-moz-user-select:none!important;
+  -ms-user-select:none!important;user-select:none!important;
+  -webkit-touch-callout:none!important;
+}
+input,textarea,[contenteditable="true"]{
+  -webkit-user-select:text!important;user-select:text!important;
+}
+img{-webkit-user-drag:none;user-drag:none;pointer-events:auto}
+.card-img,.chi-img,.ti-img,.pb-cover,.pd-cover,.mini-cover,
+.modal-cover,.ap-avatar,.ap-hero-img,.pq-cover{
+  -webkit-user-drag:none;pointer-events:none;
+}
+
+/* ─── CARDS UNIFORMES (search results: álbuns + playlists) ─── */
+.cards-grid .card{
+  position:relative;display:flex;flex-direction:column;
+  background:#181818;border-radius:10px;padding:.7rem;
+  transition:background .2s;overflow:hidden;
+}
+.cards-grid .card:hover{background:#232323}
+.cards-grid .card-img{
+  width:100%!important;aspect-ratio:1!important;height:auto!important;
+  max-height:none!important;object-fit:cover!important;
+  border-radius:6px!important;margin-bottom:.55rem!important;
+  box-shadow:0 8px 22px rgba(0,0,0,.45);
+}
+.cards-grid .card-badge{
+  align-self:flex-start;margin-bottom:.25rem;
+  font-size:.58rem;padding:.18rem .45rem;border-radius:4px;font-weight:800;
+  letter-spacing:.06em;text-transform:uppercase;
+}
+.cards-grid .card-title{
+  font-size:.86rem;font-weight:700;line-height:1.22;
+  display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;
+  overflow:hidden;text-overflow:ellipsis;white-space:normal;
+  min-height:2.45em;margin-bottom:.15rem;
+}
+.cards-grid .card-sub{
+  font-size:.72rem;color:var(--sub);line-height:1.3;
+  display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;
+  overflow:hidden;text-overflow:ellipsis;white-space:normal;
+}
+/* Play button SEMPRE sobre a capa (nunca em cima do texto) */
+.cards-grid .card-play{
+  position:absolute!important;
+  top:auto!important;left:auto!important;
+  right:.85rem!important;
+  /* a imagem é quadrada = largura do card - 2*padding (~1.4rem)
+     então o canto inferior da capa fica em padding (.7rem) + (100% - 2*padding) abaixo do topo.
+     usando bottom relativo, o texto abaixo da imagem mede ~5.2rem (badge+title 2l+sub 2l) */
+  bottom:5.4rem!important;
+  width:40px!important;height:40px!important;
+  border-radius:50%!important;font-size:.85rem!important;
+  display:flex;align-items:center;justify-content:center;
+  opacity:0;transform:translateY(6px) scale(.92);
+  transition:opacity .18s,transform .18s,background .18s;
+  background:#1db954;color:#000;border:0;
+  box-shadow:0 8px 22px rgba(0,0,0,.55);cursor:pointer;
+}
+.cards-grid .card:hover .card-play{opacity:1;transform:translateY(0) scale(1)}
+
+@media(max-width:800px){
+  .cards-grid .card{padding:.55rem}
+  .cards-grid .card-play{opacity:1;transform:none;right:.7rem;bottom:5.1rem;width:38px;height:38px}
+  .cards-grid .card-title{font-size:.8rem;min-height:2.4em}
+  .cards-grid .card-sub{font-size:.68rem}
+}
+@media(max-width:380px){
+  .cards-grid .card-play{bottom:4.9rem;width:36px;height:36px}
+  .cards-grid .card-title{font-size:.76rem}
+}
+
+/* ─── PLAYER PROFISSIONAL ─── */
+/* Desktop player-bar: mais altura, sombras, refinamento Spotify */
+.player-bar{
+  background:linear-gradient(180deg,#181818,#101010)!important;
+  border-top:1px solid rgba(255,255,255,.06)!important;
+  box-shadow:0 -8px 28px rgba(0,0,0,.55);
+  padding:0 1.4rem!important;
+}
+.pb-cover{
+  width:56px!important;height:56px!important;
+  border-radius:6px!important;
+  box-shadow:0 6px 16px rgba(0,0,0,.5);
+}
+.pb-title{font-size:.9rem!important;letter-spacing:-.01em}
+.pb-artist{font-size:.74rem!important}
+.pb-play{
+  width:38px!important;height:38px!important;
+  background:#fff!important;color:#000!important;
+  box-shadow:0 6px 18px rgba(29,185,84,.0);
+  transition:transform .12s,background .15s,box-shadow .2s;
+}
+.pb-play:hover{
+  background:#1ed760!important;color:#000!important;
+  box-shadow:0 8px 22px rgba(29,185,84,.45);
+  transform:scale(1.08);
+}
+.pb-btn{font-size:1rem;color:#b3b3b3}
+.pb-btn:hover{color:#fff}
+.pb-bar{height:4px;background:rgba(255,255,255,.18)}
+.pb-fill{background:#fff!important;transition:background .18s,width .15s linear}
+.pb-bar:hover .pb-fill{background:#1ed760!important}
+.pb-fill::after{width:12px;height:12px;box-shadow:0 2px 8px rgba(0,0,0,.5)}
+
+/* Mini-bar mobile premium */
+.mini-bar{
+  background:linear-gradient(180deg,#2a2a2a,#181818)!important;
+  border:1px solid rgba(255,255,255,.06)!important;
+  box-shadow:0 -10px 30px rgba(0,0,0,.6)!important;
+  height:68px!important;border-radius:10px!important;
+  margin:0 .45rem!important;left:.45rem!important;right:.45rem!important;
+}
+.mini-cover{
+  width:46px!important;height:46px!important;
+  border-radius:6px;box-shadow:0 4px 12px rgba(0,0,0,.5);
+}
+.mini-title{font-size:.86rem;font-weight:700;letter-spacing:-.01em}
+.mini-sub{font-size:.7rem}
+.mini-play{
+  background:#fff!important;color:#000!important;
+  width:36px!important;height:36px!important;
+  box-shadow:0 4px 14px rgba(0,0,0,.5);
+}
+.mini-play:hover{background:#1ed760!important}
+.mini-prog{height:3px!important;background:rgba(255,255,255,.1)!important}
+.mini-prog-fill{background:#1ed760!important;box-shadow:0 0 8px rgba(30,215,96,.6)}
+
+/* Player drawer (full) — mais refinado */
+.player-drawer{
+  background:linear-gradient(180deg,#2d4d34 0%,#1a1a1a 45%,#0a0a0a 100%)!important;
+}
+.pd-cover{
+  border-radius:10px!important;
+  box-shadow:0 28px 70px rgba(0,0,0,.75)!important;
+}
+.pd-title{font-size:1.4rem!important;letter-spacing:-.03em}
+.pd-play{
+  background:#fff!important;color:#000!important;
+  width:60px!important;height:60px!important;font-size:1.4rem!important;
+  box-shadow:0 8px 24px rgba(0,0,0,.5);
+}
+.pd-play:hover{background:#1ed760!important;transform:scale(1.06)}
+.pd-bar{height:4px!important;background:rgba(255,255,255,.18)!important}
+.pd-bar-fill{background:#fff!important}
+.pd-bar:hover .pd-bar-fill{background:#1ed760!important}
+
 </style>
 </head>
 <body>
@@ -1037,7 +1198,7 @@ function renderSearch(data){
   html+=`<div class="sr-panel${_srTab==='albums'?'':' sr-hidden'}" id="srp-albums">`;
   if(albums.length){
     html+=`<div class="cards-grid">`;
-    albums.forEach(al=>{html+=`<div class="card" data-album-id="${al.id}"><img class="card-img" src="${esc(al.cover_xl||al.cover)}" onerror="imgErr(this)" loading="lazy"/><button class="card-play">▶</button><div class="card-badge cb-album">Álbum</div><div class="card-title">${esc(al.title)}</div><div class="card-sub"><span class="clickable" data-artist-id="${al.artist_id||''}">${esc(al.artist)}</span>${al.year?' · '+al.year:''}</div></div>`});
+    albums.forEach(al=>{const nt=al.nb_tracks||al.tracks_n||al.tracks||0;const extra=[al.year||'',nt?nt+' faixas':''].filter(Boolean).join(' · ');html+=`<div class="card" data-album-id="${al.id}"><img class="card-img" src="${esc(al.cover_xl||al.cover)}" onerror="imgErr(this)" loading="lazy"/><button class="card-play">▶</button><div class="card-badge cb-album">Álbum</div><div class="card-title">${esc(al.title)}</div><div class="card-sub"><span class="clickable" data-artist-id="${al.artist_id||''}">${esc(al.artist)}</span>${extra?' · '+extra:''}</div></div>`});
     html+=`</div>`;
   }
   html+=`</div>`;
