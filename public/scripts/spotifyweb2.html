@@ -501,6 +501,99 @@ main{background:linear-gradient(180deg,#1f1f1f 0%,#121212 240px)!important}
   .topbar{padding-left:max(.85rem,env(safe-area-inset-left));padding-right:max(.85rem,env(safe-area-inset-right))}
   .content{padding-left:max(.85rem,env(safe-area-inset-left));padding-right:max(.85rem,env(safe-area-inset-right))}
 }
+
+/* ══════════════════════════════════════════════════════════
+   MOBILE POLISH v2 — Spotify-like artist page & discografia
+   (apenas CSS — não altera nenhuma lógica do app)
+═══════════════════════════════════════════════════════════ */
+@media(max-width:800px){
+  /* Container interno da página do artista (padding inline) */
+  .artist-page > div[style]{padding:0 .85rem!important}
+
+  /* HERO do artista — limpo e proporcional */
+  .ap-hero{min-height:260px;align-items:flex-end}
+  .ap-hero-img{filter:brightness(.45)}
+  .ap-hero-grad{background:linear-gradient(to top,#121212 0%,rgba(18,18,18,.55) 55%,rgba(18,18,18,.15) 100%)}
+  .ap-hero-content{padding:1rem .9rem 1.1rem;gap:.9rem;flex-direction:row;align-items:flex-end}
+  .ap-avatar{width:78px;height:78px;border-width:2px}
+  .ap-info{min-width:0;flex:1}
+  .ap-info h1{font-size:1.55rem;line-height:1.05;letter-spacing:-.03em;
+    overflow:hidden;text-overflow:ellipsis;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;white-space:normal}
+  .ap-meta{font-size:.72rem;margin-top:.15rem}
+
+  /* Botão Voltar — chip no topo, fora da foto */
+  .ap-back{top:.55rem;left:.55rem;padding:.32rem .7rem;font-size:.7rem;
+    background:rgba(0,0,0,.7)!important;border-color:rgba(255,255,255,.18)}
+
+  /* Abas (Top Faixas / Discografia) — pílulas Spotify */
+  .ap-tabs{gap:.4rem;padding:.85rem 0 .55rem;overflow-x:auto;scrollbar-width:none;flex-wrap:nowrap}
+  .ap-tabs::-webkit-scrollbar{display:none}
+  .aptab{font-size:.78rem;padding:.35rem .85rem;flex-shrink:0}
+
+  /* DISCOGRAFIA — grade 2 colunas perfeita, sem overflow */
+  #ap-alb-grid,
+  .aptab-panel .cards-grid{
+    display:grid!important;
+    grid-template-columns:repeat(2,minmax(0,1fr))!important;
+    gap:.7rem!important;padding:.4rem 0 1rem!important;width:100%!important;
+  }
+  #ap-alb-grid .card,
+  .aptab-panel .cards-grid .card{
+    width:auto!important;min-width:0!important;max-width:100%!important;
+    padding:.55rem!important;background:#181818!important;
+    border-radius:8px!important;flex-shrink:1!important;
+  }
+  #ap-alb-grid .card-img,
+  .aptab-panel .cards-grid .card-img{
+    width:100%!important;aspect-ratio:1!important;max-height:none!important;
+    height:auto!important;object-fit:cover!important;margin-bottom:.5rem!important;
+    border-radius:6px!important;box-shadow:0 6px 18px rgba(0,0,0,.4);
+  }
+  #ap-alb-grid .card-title,
+  .aptab-panel .cards-grid .card-title{
+    font-size:.82rem;font-weight:700;line-height:1.2;
+    display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;
+    overflow:hidden;white-space:normal;text-overflow:ellipsis;min-height:2.4em;
+  }
+  #ap-alb-grid .card-sub,
+  .aptab-panel .cards-grid .card-sub{font-size:.7rem;color:var(--sub);
+    white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  #ap-alb-grid .card-badge,
+  .aptab-panel .cards-grid .card-badge{font-size:.55rem;padding:.15rem .4rem}
+  #ap-alb-grid .card-play,
+  .aptab-panel .cards-grid .card-play{
+    opacity:1!important;transform:none!important;
+    bottom:auto!important;top:calc(100% - 5.1rem)!important;
+    right:.55rem!important;left:auto!important;
+    width:36px!important;height:36px!important;font-size:.8rem;
+  }
+
+  /* Top Faixas no mobile — linhas mais limpas */
+  #app-top .chart-list{padding:.2rem 0}
+  #app-top .chi{padding:.45rem .25rem}
+  #app-top .chi-num{width:18px;font-size:.7rem}
+  #app-top .chi-info{min-width:0}
+  #app-top .chi-title{font-size:.84rem;font-weight:600}
+  #app-top .chi-artist{font-size:.7rem}
+
+  /* Evita scroll horizontal global */
+  html,body,.app,main,.content,.artist-page{max-width:100%;overflow-x:hidden}
+}
+
+/* Telas bem pequenas (≤380px) — manter 2 colunas legíveis */
+@media(max-width:380px){
+  #ap-alb-grid,
+  .aptab-panel .cards-grid{gap:.55rem!important}
+  #ap-alb-grid .card,
+  .aptab-panel .cards-grid .card{padding:.45rem!important}
+  #ap-alb-grid .card-title,
+  .aptab-panel .cards-grid .card-title{font-size:.76rem;min-height:2.3em}
+  #ap-alb-grid .card-sub,
+  .aptab-panel .cards-grid .card-sub{font-size:.65rem}
+  .ap-info h1{font-size:1.35rem}
+  .ap-avatar{width:68px;height:68px}
+  .ap-hero{min-height:230px}
+}
 </style>
 </head>
 <body>
